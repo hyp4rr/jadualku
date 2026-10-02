@@ -6,6 +6,7 @@ import {
   CalendarRange,
   ChevronDown,
   Clock,
+  Coffee,
   FolderSearch,
   GitCompareArrows,
   GraduationCap,
@@ -38,6 +39,7 @@ import TimetableView from "./components/TimetableView.tsx";
 import ModeToggle from "./components/ModeToggle.tsx";
 import AboutDialog, { AboutButton, AppFooter, DisclaimerBanner } from "./components/AboutDialog.tsx";
 import ReportDialog, { ReportButton } from "./components/ReportDialog.tsx";
+import SupportDialog, { SupportButton } from "./components/SupportDialog.tsx";
 import BrowsePanel from "./components/panels/BrowsePanel.tsx";
 import GroupCodePanel from "./components/panels/GroupCodePanel.tsx";
 import MatricPanel from "./components/panels/MatricPanel.tsx";
@@ -192,6 +194,7 @@ export default function App() {
   const [designOpen, setDesignOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
   const [session, setSession] = useState("");
   const [editing, setEditing] = useState<Entry | null>(null);
   const [incomingShare, setIncomingShare] = useState<SharePayload | null>(null);
@@ -337,6 +340,17 @@ export default function App() {
                 type="button"
                 role="menuitem"
                 onClick={() => {
+                  setSupportOpen(true);
+                  setViewMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-xs font-semibold text-soft hover:bg-raised"
+              >
+                <Coffee className="size-3.5 text-accent" /> Belanja Kopi
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
                   setReportOpen(true);
                   setViewMenuOpen(false);
                 }}
@@ -360,6 +374,9 @@ export default function App() {
         </div>
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <PlansMenu />
+          <span className="hidden sm:inline-flex">
+            <SupportButton onClick={() => setSupportOpen(true)} />
+          </span>
           <span className="hidden sm:inline-flex">
             <ReportButton onClick={() => setReportOpen(true)} />
           </span>
@@ -506,12 +523,23 @@ export default function App() {
         </div>
       )}
 
-      <AppFooter onAbout={() => setAboutOpen(true)} onReport={() => setReportOpen(true)} />
+      <AppFooter
+        onAbout={() => setAboutOpen(true)}
+        onReport={() => setReportOpen(true)}
+        onSupport={() => setSupportOpen(true)}
+      />
       <RecolorToast />
 
       {editing && <EntryEditDialog entry={editing} onClose={() => setEditing(null)} />}
-      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} onReport={() => setReportOpen(true)} />}
+      {aboutOpen && (
+        <AboutDialog
+          onClose={() => setAboutOpen(false)}
+          onReport={() => setReportOpen(true)}
+          onSupport={() => setSupportOpen(true)}
+        />
+      )}
       {reportOpen && <ReportDialog onClose={() => setReportOpen(false)} />}
+      {supportOpen && <SupportDialog onClose={() => setSupportOpen(false)} />}
       {designOpen && <DesignDrawer onClose={() => setDesignOpen(false)} />}
       {incomingShare && (
         <ShareDialog payload={incomingShare} onClose={() => setIncomingShare(null)} onCompare={() => nav("compare")} />

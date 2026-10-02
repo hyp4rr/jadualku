@@ -1,7 +1,6 @@
 /** Creator + outbound links. Update here if a URL changes. */
 export const CREATOR = "hyp4rr";
 export const GITHUB_URL = "https://github.com/hyp4rr/jadualku";
-export const SUPPORT_URL = "https://ko-fi.com/hyp4rr";
 
 export const DISCLAIMER_SHORT = "Unofficial student project. Not affiliated with, endorsed by or operated by Universiti Teknologi MARA (UiTM).";
 export const DISCLAIMER_LONG = [

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bug, Coffee, ExternalLink, Info, ShieldAlert, X } from "lucide-react";
-import { CREATOR, DISCLAIMER_LONG, DISCLAIMER_SHORT, GITHUB_URL, SUPPORT_URL } from "../data/links.ts";
+import { CREATOR, DISCLAIMER_LONG, DISCLAIMER_SHORT, GITHUB_URL } from "../data/links.ts";
 
 const ACK_KEY = "jadualku:disclaimer-ack";
 
@@ -12,7 +12,15 @@ function GithubMark({ className = "size-4" }: { className?: string }) {
   );
 }
 
-export function FooterLinks({ className = "", onReport }: { className?: string; onReport?: () => void }) {
+export function FooterLinks({
+  className = "",
+  onReport,
+  onSupport,
+}: {
+  className?: string;
+  onReport?: () => void;
+  onSupport?: () => void;
+}) {
   const link = "inline-flex items-center gap-1 font-semibold text-soft underline-offset-2 transition-colors hover:text-accent hover:underline";
   return (
     <span className={`inline-flex flex-wrap items-center gap-x-3 gap-y-1 ${className}`}>
@@ -21,9 +29,11 @@ export function FooterLinks({ className = "", onReport }: { className?: string; 
           <Bug className="size-3.5 text-warn" /> Report issue
         </button>
       )}
-      <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className={link}>
-        <Coffee className="size-3.5" /> Support
-      </a>
+      {onSupport && (
+        <button type="button" onClick={onSupport} className={link}>
+          <Coffee className="size-3.5 text-accent" /> Belanja Kopi
+        </button>
+      )}
       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={link}>
         <GithubMark className="size-3.5" /> GitHub
       </a>
@@ -32,7 +42,15 @@ export function FooterLinks({ className = "", onReport }: { className?: string; 
 }
 
 /** Slim desktop footer shown under every view. */
-export function AppFooter({ onAbout, onReport }: { onAbout: () => void; onReport?: () => void }) {
+export function AppFooter({
+  onAbout,
+  onReport,
+  onSupport,
+}: {
+  onAbout: () => void;
+  onReport?: () => void;
+  onSupport?: () => void;
+}) {
   return (
     <footer className="hidden shrink-0 items-center gap-x-4 border-t border-line bg-panel px-4 py-1.5 text-[11px] text-faint lg:flex print:hidden">
       <span className="truncate">{DISCLAIMER_SHORT}</span>
@@ -43,7 +61,7 @@ export function AppFooter({ onAbout, onReport }: { onAbout: () => void; onReport
         <span>
           Created by <b className="text-soft">{CREATOR}</b>
         </span>
-        <FooterLinks onReport={onReport} />
+        <FooterLinks onReport={onReport} onSupport={onSupport} />
       </span>
     </footer>
   );
@@ -90,7 +108,15 @@ export function AboutButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function AboutDialog({ onClose, onReport }: { onClose: () => void; onReport?: () => void }) {
+export default function AboutDialog({
+  onClose,
+  onReport,
+  onSupport,
+}: {
+  onClose: () => void;
+  onReport?: () => void;
+  onSupport?: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -134,17 +160,21 @@ export default function AboutDialog({ onClose, onReport }: { onClose: () => void
                 </span>
               </button>
             )}
-            <a
-              href={SUPPORT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5 font-semibold text-ink transition-colors hover:border-accent hover:bg-raised"
-            >
-              <span className="flex items-center gap-2">
-                <Coffee className="size-4 text-accent" /> Support
-              </span>
-              <ExternalLink className="size-3.5 text-faint" />
-            </a>
+            {onSupport && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSupport();
+                }}
+                className="flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5 font-semibold text-ink transition-colors hover:border-accent hover:bg-raised"
+              >
+                <span className="flex items-center gap-2">
+                  <Coffee className="size-4 text-accent" /> Belanja Kopi
+                </span>
+                <span className="text-[11px] font-bold text-[#ea1a65]">QR</span>
+              </button>
+            )}
             <a
               href={GITHUB_URL}
               target="_blank"

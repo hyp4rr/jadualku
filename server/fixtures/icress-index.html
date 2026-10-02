@@ -1,0 +1,457 @@
+
+ 
+
+
+
+
+<script>
+window.onloadX = function() { 
+    
+       var client = new XMLHttpRequest();   
+        var client_fac = new XMLHttpRequest();    
+
+        client.open('GET', 'combo_select_campus.txt?id=now()');
+        client_fac.open('GET', 'combo_select_faculty.txt?id=now()'); 
+    
+        client.onreadystatechange = function() {
+            
+            
+            var select = document.getElementById("search_campus"),
+                options = client.responseText.split("<br>"),
+                i,
+                _html = "";
+            for ( i = 0; i < options.length; i++ ) { 
+
+                _html += "<option value=" + options[i] +">" + options[i] + "</option>";
+            }
+            select.innerHTML = _html;
+            
+            
+            var select_fac = document.getElementById("search_faculty"),
+                options = client_fac.responseText.split("<br>"),
+                j,
+                _html = "";
+            
+            for ( j = 0; j < options.length; j++ ) { 
+
+                _html += "<option value=" + options[j] +">" + options[j] + "</option>";
+            }
+            select_fac.innerHTML = _html; 
+            
+        }
+        client_fac.send(); 
+        client.send();
+     
+    
+}
+</script> 
+
+  
+
+<!doctype html>
+<html lang="en">
+
+    <head>
+        
+        <meta charset="utf-8" />
+        <title>STUDENT CLASS TIMETABLE - Universiti Teknologi MARA</title> 
+         
+
+        <meta http-equiv="cache-control" content="no-cache, must-revalidate, post-check=0, pre-check=0,max-age=0" />  
+        <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+        <meta http-equiv="pragma" content="no-cache" /> 
+        
+          
+        <meta name="keywords" content="UiTM, University, uitm, " />
+        <meta name="rights" content="Universiti Teknologi Mara (UiTM) has made every effort to produce information on this website that is current, and informative However, this site is provided for information purposes only, based on general information provided by third parties." />
+        <meta name="description" content="To establish UiTM as a Globally Renowned University of Science, Technology, Humanities and Entrepreneurship" />
+        
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- App favicon -->
+        <link rel="shortcut icon" href="https://sims.uitm.edu.my/images/favicon.ico">
+         
+         
+
+        <link href="assets/libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/libs/datatables.net-buttons-bs4/css/buttons.bootstrap4.min.css" rel="stylesheet" type="text/css" />
+ 
+        <link href="assets/libs/datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css" rel="stylesheet" type="text/css" />     
+ 
+        <!-- Bootstrap Css -->
+        <link href="assets/css/bootstrap.min.css" id="bootstrap-style" rel="stylesheet" type="text/css" />
+        <!-- Icons Css -->
+        <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+        <!-- App Css-->
+        <link href="assets/css/app.css?id=now()" id="app-style" rel="stylesheet" type="text/css" />
+        
+        <link href="assets/plugins/sweetalert/sweetalert.css" rel="stylesheet" type="text/css"/> 
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <!-- START THEME LAYOUT STYLE -->   
+        <!--   <meta http-equiv="refresh" content="2; url=index.html"> -->   
+    </head>
+    
+    
+     
+
+
+    <body class="login-bg">
+         
+        <div class="account-pages my-5 pt-sm-1">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-md-7 col-lg-7 col-xl-7">
+                        <div class="card overflow-hidden">
+                            <div class="bg-soft-primary">
+                                <div class="row">
+                                    <div class="col-12"> 
+                                           
+                                         <a   
+                                               target="_blank" href="https://www.facebook.com/uitmrasmi" class="text-muted" >
+                                        <img src="logo_01_tt.jpg?id=now()" alt="" class="img-fluid">                                        </a>                                    </div>
+                                </div>
+                            </div>
+                           
+                            
+                            <form   onSubmit="check_form_before_submit();return false;"  id="form_submit"    >    
+
+                               <input       type="hidden"   name="captcha_no_type" id="captcha_no_type"   value="llIlllIlIIllIlIIIIlllIlIll"   >
+
+                               <input   maxlength="10" type="hidden"  name="captcha1" id="captcha1"   value="lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI"   >  
+                               <input   maxlength="10" type="hidden"  name="captcha2" id="captcha2"   value="llIlllIlIIllIlIIIIlllIlIll"   >  
+                               <input   maxlength="10" type="hidden"  name="captcha3" id="captcha3"    value="lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI"  >
+
+
+                               <input   type="hidden"  name="token1" id="token1"  value="llIlllIlIIllIlIIIIlllIlIll"   >  
+                               <input   type="hidden"  name="token2" id="token2" value="llIlllIlIIlllllIIIlllIlIll"     >  
+                               <input   type="hidden"  name="token3" id="token3"  value="lIIlllIlIIlIllIIIIlllIlIll"    >  
+
+                               <input   type="hidden"  name="llIlllIlIIllIlIIIIlllIlIll" id="llIlllIlIIllIlIIIIlllIlIll"    value="llIlllIlIIllIlIIIIlllIlIll"  > 
+
+                               <input   type="hidden"  name="llIlllIlIIlllllIIIlllIlIll" id="llIlllIlIIlllllIIIlllIlIll"   value="llIlllIlIIlllllIIIlllIlIll"   >  
+
+                               <input   type="hidden"  name="lIIlllIlIIlIllIIIIlllIlIll" id="lIIlllIlIIlIllIIIIlllIlIll" value="lIIlllIlIIlIllIIIIlllIlIll"   >   
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIlllIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIllIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIlllIlIIllIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIllIlIIIIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI" 
+                               id   ="lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIllIlIllllIlIIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIllIlIllllIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIllIlIllllIlIIllIlIIIIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIllllIlIIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIlllIlIIllllIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllllIlIIllIlIIIIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIIlIlllIlIIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIlllIlIIIlIlllIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIIlIlllIlIIllIlIIIIlllIlIllI"  > 
+
+                               <input   type="hidden"  
+                               name ="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI" 
+                               id   ="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"  >   
+
+                               <input   type="hidden"  
+                               name ="llIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI" 
+                               id   ="llIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"  > 
+                               <input   type="hidden"  
+                               name ="lllIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI" 
+                               id   ="lllIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"  >    
+
+                               <input   type="hidden"  
+                               name ="llllIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI" 
+                               id   ="llllIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"    
+                               value="lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI"  >   
+
+                               <input   type="hidden"  
+                               name ="llllIIlIlllIlIIlllllIIIlIIllIlIIIIlllIlIllIl" 
+                               id   ="llllIIlIlllIlIIlllllIIIlIIllIlIIIIlllIlIllIl"    
+                               value="llllIIlIlllIlIIlllllIIIlIIllIlIIIIlllIlIllI"  >    
+
+
+                            <div class="card-body pt-0"> 
+                                 
+                                <div class="p-1"> 
+                                        <div class="form-group">
+                                            <p></p>
+                                               
+                                        </div>
+                
+                                        <div class="form-group">
+                                            <label for="username">Select a Campus : 
+                                            </label>  
+                                            <select   onChange="ShowHideDiv()"   name="search_campus" id="search_campus"   class="form-control basic-single find_cam_icress_student  ">  
+                                            </select>  
+                                        </div>  
+                                    
+                                        <div style="display:none" id="div_search_faculty" class="form-group">
+                                            <label for="username">Select a Faculty (if relevant) : 
+                                            </label> 
+                                             <select  style="width: 100%"   name="search_faculty" id="search_faculty"   
+                                                     class="form-control basic-single find_fac_icress_student"> 
+ 
+                                            </select> 
+                                             
+                                        </div>
+                                    
+                                    
+                                    
+                                        <div class="form-group">
+                                            <label for="username">Course Code : 
+                                            </label>
+                                            <input maxlength="70" type="text" class="form-control" name="search_course"  id="search_course"  style="background: #F9F9E5" > <br>
+
+                                            
+                                        </div>
+                                    
+ 
+                                    
+                                    
+                                         
+                                        <div class="form-group">
+                                            
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <button id="btnSubmit" onClick="check_form_before_submit();" class="btn btn-primary btn-block waves-effect waves-light"   type="button"  >Search</button>
+                                        </div>
+                                        <div class="form-group">
+                                            
+                                        </div>
+                                     
+                                     
+                                    
+                                    
+                                </div>
+                                
+                                 <div class="form-group" id='div_confirm_wizard'>
+                                             
+
+                                        </div>
+                                       
+                                    
+                                    
+                                    
+                                    
+                                        <div class="mt-3 text-center"> 
+                                            
+                                        </div> 
+                                       <div class="mt-3 text-center"> 
+                                            <p><br>&copy; v2.0.4 
+ 
+                                                
+
+                                                    *
+
+                                                
+
+
+
+
+
+                                            </p>
+                                        </div> 
+                                    
+                            </div>
+
+                            <select  style="width:0px" name="lIIIlllIIllll"  >  
+                                <option value="lIIIlllIIllll">-</option>
+                            </select>
+
+
+                     
+    
+   </form> 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JAVASCRIPT -->
+        <script src="assets/libs/jquery/jquery.min.js"></script>
+        <script src="assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+        <script src="assets/plugins/sweetalert/sweetalert.min.js" type="text/javascript"></script>        
+        <!-- App js -->
+        <script src="assets/js/app.js"></script>
+        
+	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        
+        
+        
+        <script src="assets/libs/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script src="assets/libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js"></script> 
+         
+        <script src="assets/libs/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+        <script src="assets/libs/datatables.net-responsive-bs4/js/responsive.bootstrap4.min.js"></script>
+  
+        
+    </body>
+</html> 
+                         
+     <script> 
+      function ShowHideDiv() {    
+        search_campus  = $('#search_campus').val();   
+
+           if(search_campus == 'B'  ){  
+               $('#div_search_faculty').show(); 
+           }
+           else{
+               $('#div_search_faculty').hide();  
+           } 
+          
+      };
+     </script> 
+                                 
+     <script> 
+      function ShowHideDiv() {    
+        search_campus  = $('#search_campus').val();   
+
+           if(search_campus == 'B'  ){  
+               $('#div_search_faculty').show(); 
+           }
+           else{
+               $('#div_search_faculty').hide();  
+           } 
+          
+      };
+     </script> 
+                                    
+           
+     
+<script type="text/javascript">
+function check_form_before_submit(){ 
+    var search_course  =document.getElementById('search_course').value ;   
+    var search_campus  =document.getElementById('search_campus').value ;   
+    var search_faculty =document.getElementById('search_faculty').value ;   
+    //len_1 = search_studentid.length; 
+    
+    if ( search_campus.length==0   ){
+        swal("Please select a valid Campus", "Field Error", "error");  
+        return false; 
+    }; 
+       
+      
+    if ( search_campus=='B'   ){ 
+
+        if ( search_faculty.length==0   ){
+            swal("Please select a valid Faculty", "Field Error", "error");  
+            return false; 
+        };  
+        
+    };  
+
+
+   document.getElementById('token1').value = 'lIIlllIlIllIllIIIIIlIlllllIlIll' ;
+   document.getElementById('token2').value = 'lIIlllIlIllIlIIlIllIIIIlllIllll' ;
+   document.getElementById('token3').value = 'lIIlllIlIllIlIIlIllIIIIlllIllll' ; 
+   document.getElementById('llIlllIlIIllIlIIIIlllIlIll').value = 'lIIlllIlIllIlIIlIllIlIIIlllIlIll' ;
+   document.getElementById('llIlllIlIIlllllIIIlllIlIll').value = 'lIIllIlIlllIlIIlIllIIIIllllIlIll' ;
+   document.getElementById('lIIlllIlIIlIllIIIIlllIlIll').value = 'lIIlllIlIIIlllIIIIlIllIlllIlIll' ;   
+
+   document.getElementById('lIIlIlllIlIIllIlIIIIlllIlIllI').value = 'lIIlIlllIlIIllIlIIIIlllIlIlllI' ; 
+   document.getElementById('lIIlIlllIlIIllIllIlIIIIlllIlIllI').value = 'lIIlIlllIlIIllIllIlIIIIlllIlIllI' ; 
+   document.getElementById('lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI').value = 'lIIlIlllIlIIllIlIIIIlllIlIlllIlIllI' ; 
+   document.getElementById('lIIlIllIlIllllIlIIllIlIIIIlllIlIllI').value = 'lIIlIllIlIllllIlIIllIlIIIIlllIlIllI' ; 
+   document.getElementById('lIIlIlllIlIIllllIlIIllIlIIIIlllIlIllI').value = 'lIIlIlllIlIIllllIlIIllIllIIIIlllIlIllI' ; 
+   document.getElementById('lIIlIlllIlIIIlIlllIlIIllIlIIIIlllIlIllI').value = 'lIllIlllIlIIIlIlllIlIIllIlIIIIlllIlIllI' ; 
+   document.getElementById('lIIlIlllIlIIllIlIIIlIIllIlIIIIlllIlIllI').value = 'lIIlIlllIlIIllIlIlIIlIIllIlIIIIlIlIllllI' ;  
+        
+   document.getElementById('captcha1').value = 'lIIlllIlIllIllIIIIIlIlllllIlIll' ;
+   document.getElementById('captcha2').value = 'lIIlllIlIllIlIIlIllIIIIlllIllll' ;
+   document.getElementById('captcha3').value = 'lIIlllIlIllIlIIlIllIIIIlllIllll' ; 
+   
+    
+    text = "<div  align='center'><br><h5 style='color:red;'>Please wait, Checking your searching criteria</h5><img src='please_wait2.gif'   alt='' width='279' height='60'  /></div>";
+    $("#div_confirm_wizard").html(text);   
+    
+    //alert('out');
+        $.ajax({ 
+          url: 'index_20264_result.cfm?id1=607805264262&id2=405202189356&id3=607803301545',
+          type: 'post',
+          //dataType: 'json',
+          data: $('#form_submit').serialize(),
+
+         success: function(data) {  
+                    $("#div_confirm_wizard").html(data);
+                   },
+
+          error: function (data) {
+
+                     $("#div_confirm_wizard").html('Some Error Occured. Please reload.');
+          },
+
+      });   
+    
+    
+     
+}
+</script> 
+        
+    <script>  
+    $('.find_cam_icress_student').select2({
+        //minimumInputLength: 2,
+        ajax: {
+            
+            url: 'cfc/select.cfc?method=CAM_lII1II11I1lIIII11IIl1I111II',
+
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    key: params.term || 'All',
+                    page: params.page || 1,
+                    page_limit: params.page_limit || 30
+                }
+                return query;
+                },
+
+        }
+    });
+     
+</script>
+           
+        
+    <script>  
+        
+
+    $('.find_fac_icress_student').select2({
+        //minimumInputLength: 2,
+        ajax: {
+            
+            url: 'cfc/select.cfc?method=FAC_lII1II11I1lIIII11IIl1I111II',
+
+            dataType: 'json',
+            data: function (params) {
+                var query = {
+                    key: params.term || 'All',
+                    page: params.page || 1,
+                    page_limit: params.page_limit || 30
+                }
+                return query;
+                },
+
+        }
+    });
+     
+</script>
+
+

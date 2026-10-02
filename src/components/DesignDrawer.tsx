@@ -543,7 +543,7 @@ export default function DesignDrawer({ onClose }: { onClose: () => void }) {
             <Palette className="size-5 text-accent" />
             <div>
               <h3 className="text-sm font-bold text-ink">Design &amp; Theme Customizer</h3>
-              <p className="hidden text-[11px] text-faint sm:block">Kustomisasi tema warna, gambar latar belakang, dan fon dengan paparan langsung</p>
+              <p className="hidden text-[11px] text-faint sm:block">Customize color palettes, background wallpapers, and fonts with live preview</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-faint hover:bg-raised hover:text-ink transition-colors" aria-label="Close">
@@ -559,7 +559,7 @@ export default function DesignDrawer({ onClose }: { onClose: () => void }) {
               <div className="flex items-center gap-2">
                 <span className="size-2 rounded-full bg-good animate-pulse" />
                 <span className="text-xs font-bold text-ink">Live Preview</span>
-                <span className="text-[11px] text-faint">({plan.entries.length > 0 ? "Jadual sebenar anda" : "Contoh subjek"})</span>
+                <span className="text-[11px] text-faint">({plan.entries.length > 0 ? "Your active timetable" : "Sample subjects"})</span>
               </div>
               <div className="flex items-center gap-1 rounded-lg border border-line bg-panel p-0.5">
                 <button

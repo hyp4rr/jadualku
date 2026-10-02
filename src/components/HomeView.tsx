@@ -39,88 +39,88 @@ export default function HomeView() {
   const steps = [
     {
       step: "01",
-      title: "Masukkan Kursus & Kumpulan",
-      desc: "Pilih salah satu daripada 4 cara mudah untuk masukkan jadual kuliah anda:",
+      title: "Add Courses & Class Groups",
+      desc: "Pick from 4 quick and easy ways to add your courses into the timetable:",
       bullets: [
         {
-          tag: "Paling Digemari",
+          tag: "Most Popular",
           tagCls: "bg-accent/15 text-accent",
-          name: "Cari Kod Kumpulan",
-          text: "Taip kod seperti RCS2404A, CS1102A, atau BA243. Semua subjek kumpulan tersebut akan dimasukkan serta-merta!",
+          name: "By Group Code",
+          text: "Type in your group code like RCS2404A, CS1102A, or BA243 to add all of your semester classes in a single click!",
         },
         {
-          tag: "Rasmi iCress",
+          tag: "Official iCress",
           tagCls: "bg-blue-500/15 text-blue-400",
-          name: "Teroka Kampus & Fakulti",
-          text: "Pilih kampus anda (Shah Alam, Puncak Alam, Machang, Samarahan dll.) dan pilih subjek satu per satu.",
+          name: "Browse Campus & Faculty",
+          text: "Select your UiTM campus (Shah Alam, Puncak Alam, Machang, Samarahan, etc.) to browse and add courses individually.",
         },
         {
           tag: "UiTM Link",
           tagCls: "bg-purple-500/15 text-purple-400",
-          name: "Import No Matrik",
-          text: "Masukkan no pelajar anda untuk tarik subjek yang telah anda daftarkan dalam sistem UiTM secara automatik.",
+          name: "Import via Student ID",
+          text: "Enter your UiTM student matric number to automatically pull your registered course timetable from the student portal.",
         },
         {
-          tag: "Fleksibel",
+          tag: "Flexible",
           tagCls: "bg-emerald-500/15 text-emerald-400",
-          name: "Slot Manual",
-          text: "Tambah aktiviti peribadi seperti solat Jumaat, sesi persatuan, sukan, kerja sambilan atau tuisyen.",
+          name: "Custom Manual Blocks",
+          text: "Add personal commitments such as Friday prayers, society meetings, sports, part-time jobs, or study sessions.",
         },
       ],
-      action: { label: "Cuba Tambah Subjek", onClick: () => goTo("timetable", "group") },
+      action: { label: "Add Classes Now", onClick: () => goTo("timetable", "group") },
     },
     {
       step: "02",
-      title: "Kesan & Selesaikan Pertembungan (Clash)",
-      desc: "Jangan risau tentang waktu kuliah yang berlanggar. JadualKu menyemak setiap saat untuk anda:",
+      title: "Instant Clash Detection & Group Swapping",
+      desc: "Never worry about overlapping classes. JadualKu continuously monitors your schedule:",
       bullets: [
         {
-          tag: "Automatik",
+          tag: "Automatic",
           tagCls: "bg-red-500/15 text-red-400",
-          name: "Amaran Pertembungan Pintar",
-          text: "Jika dua kelas jatuh pada waktu yang sama, amaran merah dan blok berjalur akan dipaparkan dengan jelas.",
+          name: "Smart Clash Alerts",
+          text: "If two classes collide at the same time, clear warning banners and diagonal stripe patterns highlight the conflict immediately.",
         },
         {
-          tag: "Pantas",
+          tag: "Quick",
           tagCls: "bg-accent/15 text-accent",
-          name: "Tukar Kumpulan 1-Klik",
-          text: "Klik pada mana-tana subjek bertindih untuk melihat kumpulan lain dan tukar waktu dengan serta-merta.",
+          name: "1-Click Group Swap",
+          text: "Click any conflicting block to inspect alternative groups and change your time slot in seconds.",
         },
         {
           tag: "Auto-Planner",
           tagCls: "bg-amber-500/15 text-amber-400",
-          name: "Penjana Jadual Tanpa Clash",
-          text: "Kumpul senarai subjek anda dalam 'Basket', dan tekan Generate untuk jana semua kombinasi jadual bebas pertembungan!",
+          name: "Clash-Free Schedule Generator",
+          text: "Add all desired courses to your Basket, click Generate, and let the algorithm discover every clash-free schedule combination!",
         },
       ],
-      action: { label: "Buka Auto-Planner", onClick: () => goTo("timetable", "planner") },
+      action: { label: "Try Auto-Planner", onClick: () => goTo("timetable", "planner") },
     },
     {
       step: "03",
-      title: "Hias Tema & Gambar Wallpaper Sendiri",
-      desc: "Jadikan jadual anda cantik dan aesthetic mengikut cita rasa unik anda:",
+      title: "Themes, Custom Wallpapers & Live Preview",
+      desc: "Make your timetable aesthetically pleasing and tailored to your personal taste:",
       bullets: [
         {
-          tag: "Preset",
+          tag: "Presets",
           tagCls: "bg-accent/15 text-accent",
-          name: "Pilihan Tema Warna Menarik",
-          text: "Pilih daripada pelbagai tema siap bina: UiTM Ungu/Emas, Midnight Dark, Paper Minimalis, Matcha Strawberry, Sunset, dan Pastel.",
+          name: "Handcrafted Color Themes",
+          text: "Select from curated presets: UiTM Purple & Gold, Midnight Dark, Paper Minimal, Matcha Strawberry, Sunset, Lavender, and Pastel.",
         },
         {
-          tag: "Kustom",
+          tag: "Custom",
           tagCls: "bg-pink-500/15 text-pink-400",
-          name: "Muat Naik Gambar Wallpaper Sendiri",
-          text: "Gunakan gambar anime kegemaran, kucing, pemandangan, atau aesthetic wallpaper anda sebagai latar belakang jadual.",
+          name: "Upload Your Own Wallpaper",
+          text: "Upload your favorite anime art, pet photo, landscape, or aesthetic background wallpaper directly from your device.",
         },
         {
           tag: "Live Preview",
           tagCls: "bg-emerald-500/15 text-emerald-400",
-          name: "Paparan Langsung Real-Time",
-          text: "Laraskan kelegapan panel kaca (frosted glass), kabur (blur), dan saiz teks sambil melihat perubahan secara langsung di sebelah!",
+          name: "Real-Time Side Preview",
+          text: "Adjust frosted glass panel opacity, blur, dim, and typography while watching the live timetable preview update beside your controls!",
         },
       ],
       action: {
-        label: "Kustomisasi Reka Bentuk",
+        label: "Customize Design",
         onClick: () => {
           goTo("timetable");
           window.dispatchEvent(new CustomEvent("jadualku:design"));
@@ -129,52 +129,52 @@ export default function HomeView() {
     },
     {
       step: "04",
-      title: "Eksport ke Telefon Pintar & Kalendar",
-      desc: "Bawa jadual anda ke mana sahaja tanpa perlu buka aplikasi setiap kali:",
+      title: "Export to Phone Wallpapers & Calendar Sync",
+      desc: "Take your timetable with you everywhere without needing to reopen the browser:",
       bullets: [
         {
           tag: "Wallpaper",
           tagCls: "bg-purple-500/15 text-purple-400",
-          name: "Wallpaper Skrin Kunci Telefon (Lockscreen)",
-          text: "Dilaraskan mengikut model iPhone & Android dengan zon selamat supaya jadual tidak terlindung di sebalik jam telefon.",
+          name: "Lockscreen Wallpapers",
+          text: "Tailored to your iPhone or Android model with dedicated clock and widget safe zones so nothing gets obstructed.",
         },
         {
-          tag: "Imej & PDF",
+          tag: "Images & PDF",
           tagCls: "bg-blue-500/15 text-blue-400",
-          name: "Muat Turun PNG HD & PDF",
-          text: "Sesuai untuk dicetak atau dikongsi dalam group WhatsApp kelas dan Telegram bersama rakan.",
+          name: "High-Res PNG & PDF",
+          text: "Export crisp, print-ready files to print or share with classmates in WhatsApp and Telegram groups.",
         },
         {
-          tag: "Kalendar",
+          tag: "Calendar",
           tagCls: "bg-amber-500/15 text-amber-400",
-          name: "Segerak ke Google / Apple Calendar",
-          text: "Eksport fail .ics untuk dimasukkan terus ke Google Calendar atau Apple Calendar dengan pengulangan setiap minggu.",
+          name: "Sync to Google & Apple Calendar",
+          text: "Download standard .ics calendar files that automatically add recurring weekly lectures to your calendar app.",
         },
       ],
-      action: { label: "Pergi ke Halaman Eksport", onClick: () => goTo("export") },
+      action: { label: "Go to Export", onClick: () => goTo("export") },
     },
   ];
 
   const faqs = [
     {
-      q: "Bagaimana cara memuat naik gambar latar belakang (wallpaper)?",
-      a: "Klik butang 'Customize' (ikon palet) di bahagian atas kanan. Di bahagian 'Background', pilih tab 'Image' dan muat naik gambar dari peranti anda. Anda boleh laraskan zoom, kedudukan fokus, kekaburan (blur), dan kelegapan panel kaca.",
+      q: "How do I upload a custom image background / wallpaper?",
+      a: "Click the 'Customize' button (palette icon) in the top-right header. In the 'Background' section, switch to 'Image' and choose a photo from your device. You can adjust the focal point, zoom, blur, dim level, and frosted glass opacity with live preview.",
     },
     {
-      q: "Adakah data dan gambar saya disimpan ke mana-mana pelayan luar?",
-      a: "Tidak sama sekali! JadualKu beroperasi 100% pada peranti anda (offline-first & client-side). Semua jadual, tema, dan gambar disimpan terus dalam memori pelayar anda (localStorage). Tiada data peribadi anda yang dihantar ke luar.",
+      q: "Is my personal timetable data stored on any external server?",
+      a: "No! JadualKu is 100% client-side and offline-first. All your timetables, custom themes, and uploaded wallpapers remain securely in your device's browser memory (localStorage). Nothing is uploaded to any private database.",
     },
     {
-      q: "Bolehkah saya membuat lebih daripada 1 jadual (contoh: Plan A & Plan B)?",
-      a: "Boleh! Klik menu nama jadual di atas (contoh: 'My Timetable') dan pilih 'New plan' atau 'Duplicate'. Anda boleh bina seberapa banyak variasi jadual yang anda mahu untuk persediaan pendaftaran kursus (add/drop).",
+      q: "Can I create multiple timetable plans (e.g. Plan A vs Plan B)?",
+      a: "Yes! Click the plan dropdown in the header (e.g. 'My timetable') and choose 'New plan' or 'Duplicate'. You can save multiple timetable drafts to prepare for course registration (add/drop) periods.",
     },
     {
-      q: "Kenapa sesetengah kod kumpulan tiada dalam sistem?",
-      a: "Data diambil terus secara langsung daripada pelayan iCress UiTM. Sekiranya fakulti belum memuat naik jadual bagi sesi terkini atau kod kumpulan baharu, anda boleh memasukkan subjek tersebut menggunakan ciri 'Manual'.",
+      q: "Why is a specific group code missing from the search?",
+      a: "Data is queried live from UiTM's official iCress timetable servers. If your faculty has not published the timetable for the new session or code yet, you can use the 'Manual' tab to quickly add your class slots.",
     },
     {
-      q: "Bolehkah saya gunakan JadualKu pada telefon pintar (iPhone / Android)?",
-      a: "Ya! JadualKu dioptimumkan sepenuhnya untuk telefon pintar dengan paparan Agenda yang kemas, sokongan sentuhan, dan ciri eksport wallpaper skrin kunci telefon khas.",
+      q: "Does JadualKu work on smartphones (iPhone / Android)?",
+      a: "Yes! JadualKu is fully responsive with an Agenda card layout tailored for mobile touch screens and specialized phone lockscreen wallpaper exports.",
     },
   ];
 
@@ -188,19 +188,19 @@ export default function HomeView() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-xs font-semibold text-soft shadow-sm">
             <span className="flex size-2 rounded-full bg-good animate-pulse" />
-            <span>UiTM Sesi {ac.semester?.session ?? "20264"}</span>
-            {weekNo ? <span>· Minggu ke-{weekNo}</span> : null}
+            <span>UiTM Session {ac.semester?.session ?? "20264"}</span>
+            {weekNo ? <span>· Week {weekNo}</span> : null}
           </div>
 
           {/* Main Title */}
           <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-ink">
-            Penjana &amp; Perancang <br className="hidden sm:inline" />
-            <span className="text-accent">Jadual Waktu UiTM</span>
+            Fastest &amp; Easiest <br className="hidden sm:inline" />
+            <span className="text-accent">UiTM Timetable Planner</span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-soft sm:text-base">
-            Susun jadual kuliah UiTM tanpa pening kepala. Cari kod kumpulan dengan pantas, elak waktu bertindih (clash),
-            hias tema mengikut citarasa estetik anda, dan simpan sebagai wallpaper skrin kunci telefon pintar.
+            Build clean, clash-free UiTM schedules in seconds. Search by group code, customize themes and wallpapers
+            with live preview, and export high-resolution phone wallpapers tailored for your lockscreen.
           </p>
 
           {/* Action Buttons */}
@@ -211,7 +211,7 @@ export default function HomeView() {
               className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-on-accent shadow-md shadow-accent/20 transition-all hover:brightness-110 active:scale-95"
             >
               <LayoutGrid className="size-4" />
-              <span>Bina Jadual Sekarang</span>
+              <span>Build Timetable Now</span>
               <ArrowRight className="size-4" />
             </button>
 
@@ -223,7 +223,7 @@ export default function HomeView() {
               className="inline-flex items-center gap-2 rounded-xl border border-line bg-panel px-5 py-3 text-sm font-bold text-soft transition-colors hover:bg-raised hover:text-ink"
             >
               <BookOpen className="size-4" />
-              <span>Panduan Pengguna</span>
+              <span>User Guide &amp; Tutorial</span>
             </button>
           </div>
 
@@ -231,13 +231,13 @@ export default function HomeView() {
           {plan.entries.length > 0 && (
             <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-good/40 bg-good/10 px-3 py-1.5 text-xs font-semibold text-good">
               <CheckCircle2 className="size-4" />
-              <span>Anda mempunyai {plan.entries.length} kursus aktif dalam jadual ({plan.name}).</span>
+              <span>You have {plan.entries.length} active classes in your schedule ({plan.name}).</span>
               <button
                 type="button"
                 onClick={() => goTo("timetable")}
                 className="underline hover:text-ink font-bold ml-1"
               >
-                Lihat Jadual →
+                View Timetable →
               </button>
             </div>
           )}
@@ -253,8 +253,8 @@ export default function HomeView() {
                 <FolderSearch className="size-5" />
                 <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-              <div className="text-xs font-bold text-ink">Cari Kod Kumpulan</div>
-              <div className="text-[11px] text-faint">RCS2404A, BA243, dll.</div>
+              <div className="text-xs font-bold text-ink">By Group Code</div>
+              <div className="text-[11px] text-faint">RCS2404A, BA243, etc.</div>
             </button>
 
             <button
@@ -266,8 +266,8 @@ export default function HomeView() {
                 <GraduationCap className="size-5" />
                 <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-              <div className="text-xs font-bold text-ink">Import No Matrik</div>
-              <div className="text-[11px] text-faint">Tarik jadual pelajar rasmi</div>
+              <div className="text-xs font-bold text-ink">Import via Matric</div>
+              <div className="text-[11px] text-faint">Pull registered courses</div>
             </button>
 
             <button
@@ -280,7 +280,7 @@ export default function HomeView() {
                 <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
               <div className="text-xs font-bold text-ink">Auto-Planner</div>
-              <div className="text-[11px] text-faint">Jana jadual tanpa clash</div>
+              <div className="text-[11px] text-faint">Generate clash-free plans</div>
             </button>
 
             <button
@@ -292,8 +292,8 @@ export default function HomeView() {
                 <CalendarRange className="size-5" />
                 <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-              <div className="text-xs font-bold text-ink">Kalendar Akademik</div>
-              <div className="text-[11px] text-faint">Minggu kuliah &amp; cuti</div>
+              <div className="text-xs font-bold text-ink">Academic Calendar</div>
+              <div className="text-[11px] text-faint">Lecture weeks &amp; holidays</div>
             </button>
           </div>
         </div>
@@ -304,19 +304,19 @@ export default function HomeView() {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-around gap-4 text-xs font-semibold text-soft">
           <div className="flex items-center gap-2">
             <Zap className="size-4 text-accent" />
-            <span>Pantas &amp; Terus dari iCress</span>
+            <span>Fast &amp; Direct from iCress</span>
           </div>
           <div className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-good" />
-            <span>100% Privasi, Tiada Akaun Diperlukan</span>
+            <span>100% Private, No Login Required</span>
           </div>
           <div className="flex items-center gap-2">
             <Smartphone className="size-4 text-accent" />
-            <span>Wallpaper Khas iPhone &amp; Android</span>
+            <span>Phone Lockscreen Wallpapers</span>
           </div>
           <div className="flex items-center gap-2">
             <Layers className="size-4 text-amber-400" />
-            <span>Kalis Luar Talian (Offline-Ready)</span>
+            <span>Offline-Ready (Client-Side)</span>
           </div>
         </div>
       </section>
@@ -325,10 +325,10 @@ export default function HomeView() {
       <section id="guide-section" className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         <div className="text-center">
           <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-ink">
-            Panduan Lengkap: Cara Guna JadualKu
+            How to Use JadualKu: Step-by-Step Guide
           </h2>
           <p className="mt-2 text-sm text-soft">
-            Ikuti 4 langkah mudah ini untuk membina dan menyesuaikan jadual waktu kuliah impian anda.
+            Follow these 4 simple steps to build and customize your dream semester timetable.
           </p>
         </div>
 
@@ -347,7 +347,7 @@ export default function HomeView() {
             >
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] font-bold ${activeStep === idx ? "text-accent" : "text-faint"}`}>
-                  Langkah {s.step}
+                  Step {s.step}
                 </span>
                 {activeStep === idx && <span className="size-1.5 rounded-full bg-accent" />}
               </div>
@@ -363,7 +363,7 @@ export default function HomeView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
             <div>
               <span className="inline-block text-xs font-extrabold uppercase tracking-wider text-accent">
-                Langkah {steps[activeStep].step}
+                Step {steps[activeStep].step}
               </span>
               <h3 className="text-lg sm:text-xl font-bold text-ink mt-0.5">
                 {steps[activeStep].title}
@@ -404,16 +404,16 @@ export default function HomeView() {
               onClick={() => setActiveStep((s) => Math.max(0, s - 1))}
               className="rounded-lg border border-line px-3 py-1.5 text-soft hover:bg-raised disabled:opacity-30"
             >
-              ← Langkah Sebelumnya
+              ← Previous Step
             </button>
-            <span className="text-faint">{activeStep + 1} daripada {steps.length}</span>
+            <span className="text-faint">{activeStep + 1} of {steps.length}</span>
             <button
               type="button"
               disabled={activeStep === steps.length - 1}
               onClick={() => setActiveStep((s) => Math.min(steps.length - 1, s + 1))}
               className="rounded-lg border border-line px-3 py-1.5 text-soft hover:bg-raised disabled:opacity-30"
             >
-              Langkah Seterusnya →
+              Next Step →
             </button>
           </div>
         </div>
@@ -424,10 +424,10 @@ export default function HomeView() {
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
             <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-ink">
-              Ciri-Ciri Hebat JadualKu
+              Core JadualKu Highlights
             </h2>
             <p className="mt-2 text-sm text-soft">
-              Segala alat yang diperlukan oleh mahasiswa UiTM untuk perancangan semester yang sempurna.
+              Every tool UiTM students need for a hassle-free semester plan.
             </p>
           </div>
 
@@ -436,10 +436,10 @@ export default function HomeView() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-accent/15 text-accent">
                 <Palette className="size-5" />
               </div>
-              <h3 className="mt-3 text-sm font-bold text-ink">Kustomisasi Tanpa Had</h3>
+              <h3 className="mt-3 text-sm font-bold text-ink">Limitless Customization</h3>
               <p className="mt-1 text-xs leading-relaxed text-soft">
-                Pilih palet warnaUiTM atau pastel, tukar jenis fon (Jakarta, Inter, JetBrains Mono dll.), dan muat naik
-                gambar wallpaper anda sendiri dengan paparan langsung secara langsung.
+                Choose vibrant presets or minimal styles, select custom variable fonts (Plus Jakarta Sans, Inter, JetBrains Mono, etc.),
+                and upload your own wallpapers with live real-time preview.
               </p>
             </div>
 
@@ -447,10 +447,10 @@ export default function HomeView() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400">
                 <CalendarDays className="size-5" />
               </div>
-              <h3 className="mt-3 text-sm font-bold text-ink">Paparan Hari Ini (Today View)</h3>
+              <h3 className="mt-3 text-sm font-bold text-ink">Today Dashboard View</h3>
               <p className="mt-1 text-xs leading-relaxed text-soft">
-                Lihat jadual kelas hari ini, masa yang tinggal, lokasi bilik kuliah, makmal, serta makluman cuti umum
-                mengikut negeri kampus anda.
+                Check current and upcoming classes, lecture hall and lab locations, lecturer names, countdown timers,
+                and state-specific campus public holidays.
               </p>
             </div>
 
@@ -458,10 +458,9 @@ export default function HomeView() {
               <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
                 <Phone className="size-5" />
               </div>
-              <h3 className="mt-3 text-sm font-bold text-ink">Eksport Lockscreen Telefon</h3>
+              <h3 className="mt-3 text-sm font-bold text-ink">Phone Lockscreen Wallpapers</h3>
               <p className="mt-1 text-xs leading-relaxed text-soft">
-                Hasilkan gambar wallpaper skrin kunci telefon dengan kedudukan safe-zone yang tidak menutup jam dan
-                widget iOS/Android anda.
+                Generate high-resolution wallpapers tailored to your exact phone screen with custom safe zones that stay clear of clock and lockscreen widgets.
               </p>
             </div>
           </div>
@@ -472,10 +471,10 @@ export default function HomeView() {
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
         <div className="text-center">
           <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-ink">
-            Soalan Lazim (FAQ)
+            Frequently Asked Questions (FAQ)
           </h2>
           <p className="mt-2 text-sm text-soft">
-            Ada soalan mengenai JadualKu? Berikut adalah jawapan untuk persoalan yang sering ditanya.
+            Common questions answered for UiTM students.
           </p>
         </div>
 
@@ -499,10 +498,10 @@ export default function HomeView() {
         <div className="mx-auto max-w-2xl">
           <Sparkles className="mx-auto size-8 text-accent mb-3" />
           <h2 className="text-2xl font-extrabold text-ink sm:text-3xl">
-            Sedia untuk Menyusun Jadual Kuliah Anda?
+            Ready to Organize Your Semester Timetable?
           </h2>
           <p className="mt-2 text-xs sm:text-sm text-soft">
-            Mulakan sekarang secara percuma tanpa pendaftaran. Jimat masa dan rancang semester UiTM anda dengan lebih bijak!
+            Get started right now for free with zero registration. Save time and plan your UiTM schedule like a pro!
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <button
@@ -510,7 +509,7 @@ export default function HomeView() {
               onClick={() => goTo("timetable")}
               className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-bold text-on-accent shadow-lg shadow-accent/20 transition-all hover:brightness-110 active:scale-95"
             >
-              <span>Bina Jadual Saya Sekarang 🚀</span>
+              <span>Build My Timetable Now 🚀</span>
             </button>
           </div>
         </div>

@@ -1,10 +1,10 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CalendarPlus, Download, ImagePlus, Palette, Printer, Share2 } from "lucide-react";
 import ModeToggle from "./ModeToggle.tsx";
-import { toJpeg, toPng } from "html-to-image";
+import { toCanvas } from "html-to-image";
 import type { Entry } from "../lib/types.ts";
 import { DEVICE_GROUPS, DEVICES, deviceSize, type DevicePreset } from "../data/devices.ts";
-import { DEFAULT_THEME, fontFamily, hasBackdrop, loadFont, resolveTheme, type ThemeSettings } from "../lib/theme.ts";
+import { DEFAULT_GRADIENT, DEFAULT_THEME, fontFamily, hasBackdrop, hexToRgb, loadFont, resolveTheme, type ThemeSettings } from "../lib/theme.ts";
 import { useAppDark } from "../lib/useAppDark.ts";
 import BackgroundLayer from "./BackgroundLayer.tsx";
 import { activePlan, usePlanner } from "../store/usePlanner.ts";
@@ -28,6 +28,98 @@ function uiScaleFor(w: number, h: number): number {
   return Math.min(2.6, Math.max(0.7, Math.sqrt((w * h) / (1600 * 900))));
 }
 
+async function drawCanvasBackdropImage(
+  ctx: CanvasRenderingContext2D,
+  theme: ThemeSettings,
+  w: number,
+  h: number,
+  scale: number,
+) {
+  if (!theme.backgroundImage) return;
+  const img = new Image();
+  img.src = theme.backgroundImage;
+  if (img.decode) {
+    try {
+      await img.decode();
+    } catch {
+      // ignore
+    }
+  } else if (!img.complete) {
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }
+
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) return;
+
+  const fit = theme.bgFit ?? "cover";
+  const fx = (theme.bgX ?? 50) / 100;
+  const fy = (theme.bgY ?? 50) / 100;
+  const zoom = theme.bgZoom ?? 1;
+  const blur = (theme.bgBlur ?? 0) * scale;
+  const dim = theme.backgroundDim ?? 0;
+  const [r, g, b] = hexToRgb(theme.bgTint ?? "#000000") ?? [0, 0, 0];
+
+  ctx.save();
+  if (blur > 0 && "filter" in ctx) {
+    ctx.filter = `blur(${blur}px)`;
+  }
+
+  if (fit === "tile") {
+    const pat = ctx.createPattern(img, "repeat");
+    if (pat) {
+      ctx.fillStyle = pat;
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else if (fit === "stretch") {
+    ctx.drawImage(img, 0, 0, w, h);
+  } else {
+    // cover or contain
+    const s = (fit === "contain" ? Math.min(w / iw, h / ih) : Math.max(w / iw, h / ih)) * zoom;
+    const dw = iw * s;
+    const dh = ih * s;
+    const dx = (w - dw) * fx;
+    const dy = (h - dh) * fy;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+  ctx.restore();
+
+  // Dim overlay
+  if (dim > 0) {
+    ctx.fillStyle = `rgba(${r},${g},${b},${dim})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
+function drawCanvasGradient(
+  ctx: CanvasRenderingContext2D,
+  theme: ThemeSettings,
+  w: number,
+  h: number,
+) {
+  const grad = theme.bgGradient ?? DEFAULT_GRADIENT;
+  const rad = ((grad.angle - 90) * Math.PI) / 180;
+  const x1 = w / 2 - (Math.cos(rad) * w) / 2;
+  const y1 = h / 2 - (Math.sin(rad) * h) / 2;
+  const x2 = w / 2 + (Math.cos(rad) * w) / 2;
+  const y2 = h / 2 + (Math.sin(rad) * h) / 2;
+  const g = ctx.createLinearGradient(x1, y1, x2, y2);
+  g.addColorStop(0, grad.from);
+  g.addColorStop(1, grad.to);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  const dim = theme.backgroundDim ?? 0;
+  if (dim > 0) {
+    const [r, g, b] = hexToRgb(theme.bgTint ?? "#000000") ?? [0, 0, 0];
+    ctx.fillStyle = `rgba(${r},${g},${b},${dim})`;
+    ctx.fillRect(0, 0, w, h);
+  }
+}
+
 interface StageProps {
   entries: Entry[];
   theme: ThemeSettings;
@@ -39,10 +131,12 @@ interface StageProps {
   guides?: boolean;
   /** Plan name shown when the theme title is empty/default. */
   titleFallback?: string;
+  /** When true, outer container has transparent background for canvas compositing. */
+  forExport?: boolean;
 }
 
 /** The exact-pixel export surface. */
-function ExportStage({ entries, theme, w, h, wallpaper, layout, guides, titleFallback }: StageProps) {
+function ExportStage({ entries, theme, w, h, wallpaper, layout, guides, titleFallback, forExport }: StageProps) {
   const uiScale = uiScaleFor(w, h);
   const appDark = useAppDark();
   const resolved = resolveTheme(theme, appDark);
@@ -57,9 +151,16 @@ function ExportStage({ entries, theme, w, h, wallpaper, layout, guides, titleFal
     <div
       data-export-stage
       className="relative flex flex-col"
-      style={{ width: w, height: h, background: resolved.background, padding: `${padTop + padY}px ${padX}px ${padBottom + padY}px`, boxSizing: "border-box", fontFamily: fontFamily(resolved.font) }}
+      style={{
+        width: w,
+        height: h,
+        background: forExport && painted && wholeCanvas ? "transparent" : resolved.background,
+        padding: `${padTop + padY}px ${padX}px ${padBottom + padY}px`,
+        boxSizing: "border-box",
+        fontFamily: fontFamily(resolved.font),
+      }}
     >
-      {painted && wholeCanvas && <BackgroundLayer theme={resolved} scale={uiScale} />}
+      {painted && wholeCanvas && <BackgroundLayer theme={resolved} scale={uiScale} transparentBase={forExport} />}
       {guides && (res.top > 0 || res.bottom > 0) && (
         <>
           {res.top > 0 && (
@@ -99,6 +200,7 @@ export default function ExportView() {
   const plan = usePlanner(activePlan);
   const sows = usePlanner((s) => s.sows);
   const ac = useAcademic();
+  const appDark = useAppDark();
   const [reminder, setReminder] = useState(0);
   const [icsInclude, setIcsInclude] = useState({ classes: true, assessments: true, periods: false });
 
@@ -141,9 +243,68 @@ export default function ExportView() {
     await document.fonts.ready;
     const node = stageRef.current;
     if (!node) throw new Error("Export surface not mounted");
-    await new Promise((r) => setTimeout(r, 80));
+
+    // Pre-decode background image in browser cache if present
+    if (theme.backgroundImage) {
+      try {
+        const pre = new Image();
+        pre.src = theme.backgroundImage;
+        if (pre.decode) await pre.decode();
+      } catch {
+        // ignore
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 100));
     const opts = { pixelRatio: 1, canvasWidth: size.w, canvasHeight: size.h, cacheBust: false };
-    return asJpeg ? toJpeg(node, { ...opts, quality: 0.92 }) : toPng(node, opts);
+
+    // Warm-up pass for Safari/WebKit image decoders
+    let timetableCanvas: HTMLCanvasElement;
+    try {
+      await toCanvas(node, opts);
+      await new Promise((r) => setTimeout(r, 60));
+      timetableCanvas = await toCanvas(node, opts);
+    } catch {
+      timetableCanvas = await toCanvas(node, opts);
+    }
+
+    const resolved = resolveTheme(theme, appDark);
+    const painted = hasBackdrop(resolved);
+    const wholeCanvas = (resolved.bgScope ?? "canvas") === "canvas";
+
+    if (painted && wholeCanvas) {
+      const finalCanvas = document.createElement("canvas");
+      finalCanvas.width = size.w;
+      finalCanvas.height = size.h;
+      const ctx = finalCanvas.getContext("2d");
+      if (ctx) {
+        // 1. Draw solid base background
+        ctx.fillStyle = resolved.background;
+        ctx.fillRect(0, 0, size.w, size.h);
+
+        // 2. Draw background image / gradient directly on canvas
+        if (resolved.backgroundImage) {
+          try {
+            await drawCanvasBackdropImage(ctx, resolved, size.w, size.h, uiScale);
+          } catch (e) {
+            console.warn("Direct canvas backdrop draw error:", e);
+          }
+        } else if (resolved.bgKind === "gradient") {
+          drawCanvasGradient(ctx, resolved, size.w, size.h);
+        }
+
+        // 3. Draw timetable on top
+        ctx.drawImage(timetableCanvas, 0, 0);
+
+        return asJpeg
+          ? finalCanvas.toDataURL("image/jpeg", 0.92)
+          : finalCanvas.toDataURL("image/png");
+      }
+    }
+
+    return asJpeg
+      ? timetableCanvas.toDataURL("image/jpeg", 0.92)
+      : timetableCanvas.toDataURL("image/png");
   };
 
   const slug = plan.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "plan";
@@ -474,9 +635,31 @@ export default function ExportView() {
       </div>
 
       {/* Offscreen capture surface — real output, no guides. */}
-      <div style={{ position: "fixed", left: -30000, top: 0, pointerEvents: "none" }} aria-hidden>
-        <div ref={stageRef}>
-          <ExportStage entries={plan.entries} theme={theme} w={size.w} h={size.h} wallpaper={wallpaper} layout={layout} titleFallback={plan.name} />
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: 0,
+          height: 0,
+          overflow: "hidden",
+          pointerEvents: "none",
+          zIndex: -9999,
+          opacity: 0.01,
+        }}
+        aria-hidden
+      >
+        <div ref={stageRef} style={{ width: size.w, height: size.h }}>
+          <ExportStage
+            entries={plan.entries}
+            theme={theme}
+            w={size.w}
+            h={size.h}
+            wallpaper={wallpaper}
+            layout={layout}
+            titleFallback={plan.name}
+            forExport
+          />
         </div>
       </div>
 

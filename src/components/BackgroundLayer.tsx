@@ -20,7 +20,15 @@ const PATTERNS: Record<Exclude<BgPattern, "none">, (scale: number) => React.CSSP
  * point / zoom / blur), then a tinted dim overlay and an optional pattern.
  * `scale` sizes blur and patterns with the canvas so exports match the preview.
  */
-export default function BackgroundLayer({ theme, scale = 1 }: { theme: ThemeSettings; scale?: number }) {
+export default function BackgroundLayer({
+  theme,
+  scale = 1,
+  transparentBase = false,
+}: {
+  theme: ThemeSettings;
+  scale?: number;
+  transparentBase?: boolean;
+}) {
   const kind = backdropKind(theme);
   const fit = theme.bgFit ?? "cover";
   const x = theme.bgX ?? 50;
@@ -35,26 +43,51 @@ export default function BackgroundLayer({ theme, scale = 1 }: { theme: ThemeSett
   const blurPad = blur ? 1 + Math.min(0.25, blur / (160 * scale)) : 1;
 
   return (
-    <div data-bg-layer aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ background: theme.background }}>
+    <div
+      data-bg-layer
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{ background: transparentBase ? "transparent" : theme.background }}
+    >
       {kind === "gradient" && <div className="absolute inset-0" style={{ background: `linear-gradient(${grad.angle}deg, ${grad.from}, ${grad.to})` }} />}
       {kind === "image" && theme.backgroundImage && (
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 overflow-hidden"
           style={{
-            backgroundImage: `url("${theme.backgroundImage}")`,
-            backgroundRepeat: fit === "tile" ? "repeat" : "no-repeat",
-            backgroundSize: fit === "cover" ? "cover" : fit === "contain" ? "contain" : fit === "stretch" ? "100% 100%" : `${320 * zoom * scale}px auto`,
-            backgroundPosition: `${x}% ${y}%`,
-            transform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad}) translateZ(0)` : "translateZ(0)",
-            WebkitTransform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad}) translateZ(0)` : "translateZ(0)",
+            transform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad})` : undefined,
+            WebkitTransform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad})` : undefined,
             transformOrigin: `${x}% ${y}%`,
             WebkitTransformOrigin: `${x}% ${y}%`,
             filter: blur ? `blur(${blur}px)` : undefined,
             WebkitFilter: blur ? `blur(${blur}px)` : undefined,
-            WebkitBackfaceVisibility: "hidden",
-            willChange: blur || zoom !== 1 ? "transform, filter" : undefined,
           }}
-        />
+        >
+          {fit === "tile" ? (
+            <div
+              className="size-full"
+              style={{
+                backgroundImage: `url("${theme.backgroundImage}")`,
+                backgroundRepeat: "repeat",
+                backgroundPosition: `${x}% ${y}%`,
+                backgroundSize: `${320 * zoom * scale}px auto`,
+              }}
+            />
+          ) : (
+            <img
+              src={theme.backgroundImage}
+              alt=""
+              aria-hidden
+              crossOrigin="anonymous"
+              loading="eager"
+              decoding="sync"
+              className="absolute inset-0 size-full select-none"
+              style={{
+                objectFit: fit === "cover" ? "cover" : fit === "contain" ? "contain" : fit === "stretch" ? "fill" : "none",
+                objectPosition: `${x}% ${y}%`,
+              }}
+            />
+          )}
+        </div>
       )}
       {dim > 0 && <div className="absolute inset-0" style={{ background: `rgba(${r},${g},${b},${dim})` }} />}
       {pattern !== "none" && (

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Palette, Plus, Save, Trash2, X } from "lucide-react";
-import { usePlanner } from "../store/usePlanner.ts";
+import { activePlan, usePlanner } from "../store/usePlanner.ts";
 import {
   backdropKind,
   DEFAULT_GRADIENT,
@@ -15,15 +15,107 @@ import {
   type BgPattern,
   type BlockStyle,
   type FontId,
+  type Layout,
   type ThemeSettings,
 } from "../lib/theme.ts";
+import type { Entry } from "../lib/types.ts";
 import { inputCls } from "./ui.tsx";
 import ModeToggle from "./ModeToggle.tsx";
+import TimetableView from "./TimetableView.tsx";
 
-function isHeic(file: Blob | File): boolean {
-  const name = "name" in file ? (file.name || "").toLowerCase() : "";
-  const type = (file.type || "").toLowerCase();
-  return type.includes("heic") || type.includes("heif") || name.endsWith(".heic") || name.endsWith(".heif");
+const SAMPLE_ENTRIES: Entry[] = [
+  {
+    id: "sample-1",
+    subjectCode: "CSC404",
+    subjectName: "Programming II",
+    group: "RCS2404A",
+    color: "#5b9dff",
+    lecturer: "Dr. Aishah",
+    source: "icress",
+    sessions: [
+      { day: "MON", start: 8 * 60, end: 10 * 60, room: "BK01" },
+      { day: "WED", start: 10 * 60, end: 12 * 60, room: "Makmal 2" },
+    ],
+  },
+  {
+    id: "sample-2",
+    subjectCode: "MAT402",
+    subjectName: "Calculus I",
+    group: "RCS2404A",
+    color: "#4ade80",
+    lecturer: "Prof. Razak",
+    source: "icress",
+    sessions: [
+      { day: "TUE", start: 10 * 60, end: 12 * 60, room: "DK200" },
+      { day: "THU", start: 8 * 60, end: 10 * 60, room: "BK03" },
+    ],
+  },
+  {
+    id: "sample-3",
+    subjectCode: "CTU554",
+    subjectName: "Nilai & Tamadun",
+    group: "RCS2404A",
+    color: "#f87171",
+    lecturer: "Ustaz Zaki",
+    source: "icress",
+    sessions: [
+      { day: "MON", start: 14 * 60, end: 16 * 60, room: "DK300" },
+    ],
+  },
+  {
+    id: "sample-4",
+    subjectCode: "STA404",
+    subjectName: "Statistics",
+    group: "RCS2404A",
+    color: "#fbbf24",
+    lecturer: "Dr. Faridah",
+    source: "icress",
+    sessions: [
+      { day: "FRI", start: 8 * 60 + 30, end: 11 * 60 + 30, room: "BK05" },
+    ],
+  },
+];
+
+async function isKnownWebFormat(blob: Blob): Promise<boolean> {
+  try {
+    const slice = blob.slice(0, 16);
+    const buf = new Uint8Array(await slice.arrayBuffer());
+    // JPEG: FF D8 FF
+    if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
+    // PNG: 89 50 4E 47
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return true;
+    // GIF: 47 49 46 38 ('GIF8')
+    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) return true;
+    // WebP: 52 49 46 46 ... 57 45 42 50
+    if (
+      buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+    ) return true;
+  } catch {
+    // fallback
+  }
+  return false;
+}
+
+function loadImgElement(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Image decode failed"));
+    img.src = url;
+  });
+}
+
+async function tryLoadImageBlob(blob: Blob): Promise<HTMLImageElement | null> {
+  const url = URL.createObjectURL(blob);
+  try {
+    return await loadImgElement(url);
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function convertHeicToJpeg(file: Blob | File): Promise<Blob> {
@@ -32,58 +124,42 @@ async function convertHeicToJpeg(file: Blob | File): Promise<Blob> {
   const res = await heic2any({
     blob: file,
     toType: "image/jpeg",
-    quality: 0.82,
+    quality: 0.8,
   });
   return Array.isArray(res) ? res[0] : res;
 }
 
-/** Downscales an uploaded image to <=1600px and ~<=500KB JPEG for storage, and measures its average luminance. */
-async function processImage(file: Blob | File): Promise<{ dataUrl: string; lum: number }> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error("Could not read that image"));
-      i.src = url;
-    });
-    const maxDim = Math.max(img.width, img.height);
-    const scale = maxDim > 1600 ? 1600 / maxDim : 1;
-    let w = Math.round(img.width * scale);
-    let h = Math.round(img.height * scale);
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0, w, h);
+/** Downscales an image to <=1200px and compact JPEG (<=160KB) for fast, safe storage, and measures luminance. */
+async function processImage(img: HTMLImageElement): Promise<{ dataUrl: string; lum: number }> {
+  const naturalW = img.naturalWidth || img.width;
+  const naturalH = img.naturalHeight || img.height;
+  const maxDim = Math.max(naturalW, naturalH);
+  const scale = maxDim > 1200 ? 1200 / maxDim : 1;
+  const w = Math.max(1, Math.round(naturalW * scale));
+  const h = Math.max(1, Math.round(naturalH * scale));
 
-    const probe = document.createElement("canvas");
-    probe.width = probe.height = 24;
-    const pctx = probe.getContext("2d")!;
-    pctx.drawImage(img, 0, 0, 24, 24);
-    const px = pctx.getImageData(0, 0, 24, 24).data;
-    let sum = 0;
-    for (let i = 0; i < px.length; i += 4) sum += luminance(rgbToHex([px[i], px[i + 1], px[i + 2]]));
-    const lum = sum / (px.length / 4);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not initialize canvas");
+  ctx.drawImage(img, 0, 0, w, h);
 
-    let dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-    for (const q of [0.7, 0.55, 0.4]) {
-      if (dataUrl.length <= 500_000) break;
-      dataUrl = canvas.toDataURL("image/jpeg", q);
-    }
-    // If still too large, downscale canvas dimensions
-    while (dataUrl.length > 500_000 && w > 400 && h > 400) {
-      w = Math.round(w * 0.75);
-      h = Math.round(h * 0.75);
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(img, 0, 0, w, h);
-      dataUrl = canvas.toDataURL("image/jpeg", 0.5);
-    }
-    return { dataUrl, lum };
-  } finally {
-    URL.revokeObjectURL(url);
+  const probe = document.createElement("canvas");
+  probe.width = probe.height = 24;
+  const pctx = probe.getContext("2d")!;
+  pctx.drawImage(canvas, 0, 0, 24, 24);
+  const px = pctx.getImageData(0, 0, 24, 24).data;
+  let sum = 0;
+  for (let i = 0; i < px.length; i += 4) sum += luminance(rgbToHex([px[i], px[i + 1], px[i + 2]]));
+  const lum = sum / (px.length / 4);
+
+  let dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+  for (const q of [0.65, 0.55, 0.45, 0.35]) {
+    if (dataUrl.length <= 160_000) break;
+    dataUrl = canvas.toDataURL("image/jpeg", q);
   }
+  return { dataUrl, lum };
 }
 
 
@@ -189,18 +265,40 @@ function BackgroundSection() {
 
   const loadFile = async (rawFile: File | Blob | undefined | null) => {
     if (!rawFile) return;
-    const name = "name" in rawFile ? rawFile.name : "";
-    const isImage = (rawFile.type && rawFile.type.startsWith("image/")) || isHeic(rawFile) || /\.(jpe?g|png|webp|heic|heif|gif|bmp|avif)$/i.test(name);
-    if (!isImage) return setError("That file isn't an image.");
     setError("");
     setBusy(true);
     try {
-      let file: File | Blob = rawFile;
-      if (isHeic(rawFile)) {
-        file = await convertHeicToJpeg(rawFile);
+      // 1. Try native browser decode first (works for JPEG, PNG, WebP, GIF, and iOS 17+ native HEIC)
+      let img = await tryLoadImageBlob(rawFile);
+
+      // 2. If native decode failed, check if it's HEIC/HEIF and try conversion
+      if (!img) {
+        const isWeb = await isKnownWebFormat(rawFile);
+        if (!isWeb) {
+          try {
+            const converted = await convertHeicToJpeg(rawFile);
+            img = await tryLoadImageBlob(converted);
+          } catch (heicErr) {
+            console.warn("HEIC conversion failed:", heicErr);
+          }
+        }
       }
-      const { dataUrl, lum } = await processImage(file);
-      setTheme({ backgroundImage: dataUrl, bgLum: lum, bgKind: "image", bgX: 50, bgY: 50, bgZoom: 1 });
+
+      if (!img) {
+        throw new Error("Could not read that image. Please choose a JPG, PNG, or WebP photo.");
+      }
+
+      const { dataUrl, lum } = await processImage(img);
+      setTheme({
+        backgroundImage: dataUrl,
+        bgLum: lum,
+        bgKind: "image",
+        bgX: 50,
+        bgY: 50,
+        bgZoom: 1,
+        backgroundDim: Math.min(theme.backgroundDim ?? 0.2, 0.25),
+        panelOpacity: Math.min(theme.panelOpacity ?? 0.55, 0.55),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not read that image");
     } finally {
@@ -415,6 +513,7 @@ const SHOW_FIELDS: { key: keyof ThemeSettings["show"]; label: string }[] = [
 
 export default function DesignDrawer({ onClose }: { onClose: () => void }) {
   const theme = usePlanner((s) => s.theme);
+  const plan = usePlanner(activePlan);
   const savedThemes = usePlanner((s) => s.savedThemes);
   const setTheme = usePlanner((s) => s.setTheme);
   const applyPreset = usePlanner((s) => s.applyPreset);
@@ -424,6 +523,8 @@ export default function DesignDrawer({ onClose }: { onClose: () => void }) {
   const loadSavedTheme = usePlanner((s) => s.loadSavedTheme);
 
   const [saveName, setSaveName] = useState("");
+  const [previewLayout, setPreviewLayout] = useState<Layout>(theme.layout);
+  const previewEntries = plan.entries.length > 0 ? plan.entries : SAMPLE_ENTRIES;
 
   const pickFont = async (id: FontId) => {
     setTheme({ font: id });
@@ -433,23 +534,88 @@ export default function DesignDrawer({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="anim-fade fixed inset-0 z-50" role="dialog" aria-label="Design">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="anim-panel absolute inset-x-0 bottom-0 flex max-h-[82dvh] flex-col lg:max-h-none rounded-t-2xl border-t border-line bg-panel lg:inset-y-0 lg:right-0 lg:left-auto lg:w-96 lg:max-w-[26rem] lg:rounded-none lg:border-t-0 lg:border-l">
-        <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-          <Palette className="size-4 text-accent" />
-          <h3 className="text-sm font-bold">Design</h3>
-          <button type="button" onClick={onClose} className="ml-auto rounded-md p-1.5 text-faint hover:bg-raised">
+    <div className="anim-fade fixed inset-0 z-50 flex items-end lg:items-center justify-center p-0 lg:p-6" role="dialog" aria-label="Design">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="anim-panel relative z-10 flex h-full max-h-[88dvh] w-full flex-col rounded-t-2xl border-t border-line bg-panel shadow-2xl lg:h-[88vh] lg:max-w-6xl xl:max-w-7xl lg:rounded-2xl lg:border overflow-hidden">
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-2">
+            <Palette className="size-5 text-accent" />
+            <div>
+              <h3 className="text-sm font-bold text-ink">Design &amp; Theme Customizer</h3>
+              <p className="hidden text-[11px] text-faint sm:block">Kustomisasi tema warna, gambar latar belakang, dan fon dengan paparan langsung</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-faint hover:bg-raised hover:text-ink transition-colors" aria-label="Close">
             <X className="size-5" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3 pb-24 lg:pb-6">
-          <section className="space-y-2">
-            <h4 className="text-[11px] font-bold tracking-wide text-faint uppercase">Appearance</h4>
-            <ModeToggle className="w-full [&>button]:flex-1 [&>button]:justify-center" />
-            <p className="text-[11px] text-faint">Dark / Light re-skins the timetable itself. “Auto” follows the app's sun/moon switch.</p>
-          </section>
+        {/* 2-Column Split: Preview (Desktop Left) + Scrollable Controls (Right / Mobile) */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Left Column (Desktop Only): Live Preview */}
+          <div className="hidden lg:flex flex-1 min-w-0 flex-col border-r border-line bg-paper/40">
+            <div className="flex items-center justify-between border-b border-line px-4 py-2.5 bg-panel/50">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-good animate-pulse" />
+                <span className="text-xs font-bold text-ink">Live Preview</span>
+                <span className="text-[11px] text-faint">({plan.entries.length > 0 ? "Jadual sebenar anda" : "Contoh subjek"})</span>
+              </div>
+              <div className="flex items-center gap-1 rounded-lg border border-line bg-panel p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setPreviewLayout("grid")}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    previewLayout === "grid" ? "bg-accent/15 text-accent" : "text-soft hover:bg-raised"
+                  }`}
+                >
+                  Weekly Grid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewLayout("agenda")}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    previewLayout === "agenda" ? "bg-accent/15 text-accent" : "text-soft hover:bg-raised"
+                  }`}
+                >
+                  Agenda View
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 p-4 overflow-hidden">
+              <div className="h-full w-full rounded-2xl overflow-hidden border border-line shadow-sm relative">
+                <TimetableView
+                  entries={previewEntries}
+                  theme={theme}
+                  layout={previewLayout}
+                  fill
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column / Mobile: Scrollable Controls */}
+          <div className="flex-1 lg:flex-none lg:w-[420px] xl:w-[460px] min-h-0 overflow-y-auto px-4 py-3 pb-24 lg:pb-6 space-y-4">
+            {/* Mobile Live Preview Card */}
+            <div className="lg:hidden rounded-xl border border-line overflow-hidden relative shadow-sm h-48 sm:h-56 shrink-0">
+              <TimetableView
+                entries={previewEntries}
+                theme={theme}
+                layout={theme.layout}
+                fill
+                uiScale={0.8}
+              />
+              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur px-2 py-0.5 rounded-full text-[10px] font-semibold text-white pointer-events-none">
+                Live Preview
+              </div>
+            </div>
+
+            <section className="space-y-2">
+              <h4 className="text-[11px] font-bold tracking-wide text-faint uppercase">Appearance</h4>
+              <ModeToggle className="w-full [&>button]:flex-1 [&>button]:justify-center" />
+              <p className="text-[11px] text-faint">Dark / Light re-skins the timetable itself. “Auto” follows the app's sun/moon switch.</p>
+            </section>
 
           <Section title="Presets">
             <div className="grid grid-cols-2 gap-1.5">
@@ -721,9 +887,9 @@ export default function DesignDrawer({ onClose }: { onClose: () => void }) {
             <input value={theme.title} onChange={(e) => setTheme({ title: e.target.value })} placeholder="e.g. Semester 20264" className={inputCls} />
             <input value={theme.subtitle} onChange={(e) => setTheme({ subtitle: e.target.value })} placeholder="Subtitle (optional)" className={inputCls} />
           </Section>
-
         </div>
       </div>
     </div>
+  </div>
   );
 }

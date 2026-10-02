@@ -10,6 +10,7 @@ import {
   FolderSearch,
   GitCompareArrows,
   GraduationCap,
+  Home,
   ImageDown,
   Info,
   LayoutGrid,
@@ -37,7 +38,6 @@ import DesignDrawer from "./components/DesignDrawer.tsx";
 import ShareDialog from "./components/ShareDialog.tsx";
 import TimetableView from "./components/TimetableView.tsx";
 import BackgroundLayer from "./components/BackgroundLayer.tsx";
-import ModeToggle from "./components/ModeToggle.tsx";
 import AboutDialog, { AboutButton, AppFooter, DisclaimerBanner } from "./components/AboutDialog.tsx";
 import ReportDialog, { ReportButton } from "./components/ReportDialog.tsx";
 import SupportDialog, { SupportButton } from "./components/SupportDialog.tsx";
@@ -48,6 +48,7 @@ import ManualPanel from "./components/panels/ManualPanel.tsx";
 import PlannerPanel from "./components/panels/PlannerPanel.tsx";
 
 // Top-level views — lazy so each view is a separate chunk.
+const HomeView = lazy(() => import("./components/HomeView.tsx"));
 const TodayView = lazy(() => import("./components/TodayView.tsx"));
 const CalendarView = lazy(() => import("./components/CalendarView.tsx"));
 const SubjectsView = lazy(() => import("./components/SubjectsView.tsx"));
@@ -55,8 +56,9 @@ const CompareView = lazy(() => import("./components/CompareView.tsx"));
 const ExportView = lazy(() => import("./components/ExportView.tsx"));
 
 const VIEWS = [
-  { id: "today", label: "Today", icon: Clock, component: TodayView },
+  { id: "home", label: "Home", icon: Home, component: HomeView },
   { id: "timetable", label: "Timetable", icon: LayoutGrid, component: null },
+  { id: "today", label: "Today", icon: Clock, component: TodayView },
   { id: "calendar", label: "Calendar", icon: CalendarRange, component: CalendarView },
   { id: "subjects", label: "Subjects", icon: BookOpen, component: SubjectsView },
   { id: "compare", label: "Compare", icon: GitCompareArrows, component: CompareView },
@@ -81,9 +83,9 @@ function viewFromHash(): ViewId | null {
   return VIEW_IDS.has(h) ? (h as ViewId) : null;
 }
 
-/** Landing view: Today on phones, Timetable elsewhere. */
+/** Landing view: Home by default. */
 function defaultView(): ViewId {
-  return window.matchMedia("(max-width: 1023px)").matches ? "today" : "timetable";
+  return "home";
 }
 
 function useHashView(): [ViewId, (v: ViewId) => void] {
@@ -219,6 +221,24 @@ export default function App() {
       .catch((e) => console.warn("Invalid share link:", e));
   }, []);
 
+  // Listen for navigation triggers from HomeView
+  useEffect(() => {
+    const onSetTab = (e: Event) => {
+      const targetTab = (e as CustomEvent<TabId>).detail;
+      if (targetTab) {
+        setTab(targetTab);
+        setSheetOpen(true);
+      }
+    };
+    const onOpenDesign = () => setDesignOpen(true);
+    window.addEventListener("jadualku:tab", onSetTab);
+    window.addEventListener("jadualku:design", onOpenDesign);
+    return () => {
+      window.removeEventListener("jadualku:tab", onSetTab);
+      window.removeEventListener("jadualku:design", onOpenDesign);
+    };
+  }, []);
+
   // Close the mobile view menu on outside click.
   useEffect(() => {
     if (!viewMenuOpen) return;
@@ -282,8 +302,14 @@ export default function App() {
     <div className="flex h-full flex-col bg-bg text-ink">
       {/* Header */}
       <header className="flex items-center gap-1.5 border-b border-line bg-panel px-2 py-2 sm:gap-2 sm:px-4 print:hidden">
-        <CalendarDays className="size-5 shrink-0 text-accent" />
-        <h1 className="hidden text-base font-extrabold tracking-tight sm:block">JadualUiTMKu</h1>
+        <button
+          type="button"
+          onClick={() => nav("home")}
+          className="flex items-center gap-1.5 text-left hover:opacity-85 transition-opacity cursor-pointer"
+        >
+          <CalendarDays className="size-5 shrink-0 text-accent" />
+          <h1 className="hidden text-base font-extrabold tracking-tight sm:block">JadualUiTMKu</h1>
+        </button>
         {session && (
           <span className="hidden rounded-full bg-raised px-2 py-0.5 text-[11px] font-semibold text-soft md:inline">
             Session {session}
@@ -431,12 +457,11 @@ export default function App() {
             <ClashBanner entries={plan.entries} />
             {/* narrow-screen layout toggle */}
             {plan.entries.length > 0 && (
-              <div className="flex items-center justify-end gap-2 px-3 pt-2 print:hidden">
-                <ModeToggle compact />
+              <div className="flex items-center justify-end px-3 pt-2 print:hidden lg:hidden">
                 <button
                   type="button"
                   onClick={() => setMobileGrid((g) => !g)}
-                  className="flex items-center gap-1.5 rounded-lg border border-line bg-panel px-2.5 py-1 text-xs font-semibold text-soft lg:hidden"
+                  className="flex items-center gap-1.5 rounded-lg border border-line bg-panel px-2.5 py-1 text-xs font-semibold text-soft"
                 >
                   {timetableLayout === "agenda" ? (
                     <>
@@ -470,7 +495,7 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <div className={timetableLayout === "agenda" ? "mx-auto flex min-h-full max-w-2xl flex-col" : "h-full"}>
+                <div className={timetableLayout === "agenda" ? "mx-auto flex min-h-full max-w-2xl flex-col flex-1" : "h-full"}>
                   <TimetableView
                     entries={plan.entries}
                     theme={theme}
@@ -479,7 +504,7 @@ export default function App() {
                     onBlockClick={setEditing}
                     layout={timetableLayout}
                     fill={timetableLayout !== "agenda"}
-                    className={timetableLayout === "agenda" ? "min-h-full flex-1 pb-20 lg:pb-2" : "h-full pb-20 lg:pb-0"}
+                    className={timetableLayout === "agenda" ? "min-h-full flex-1 flex flex-col pb-20 lg:pb-2" : "h-full pb-20 lg:pb-0"}
                   />
                 </div>
               )}

@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import type { Day, Entry, Session } from "../lib/types.ts";
 import { DAY_LABEL, DAYS as DAY_ORDER } from "../lib/types.ts";
 import { clashedSessionKeys } from "../lib/clash.ts";
-import { blockColors, DEFAULT_THEME, type ThemeSettings } from "../lib/theme.ts";
+import { blockColors, DEFAULT_THEME, hasBackdrop, type ThemeSettings } from "../lib/theme.ts";
 import { daysFor, fmtTimeRange } from "./TimetableGrid.tsx";
 
 export interface AgendaViewProps {
@@ -50,6 +50,8 @@ export default function AgendaView({ entries, theme = DEFAULT_THEME, ghost, onEn
 
   const empty = !days.length;
   const cardPad = 8 * theme.fontScale;
+  const isBackdrop = hasBackdrop(theme);
+  const p = Math.min(1, Math.max(0, theme.panelOpacity ?? 0.65));
   return (
     <div
       data-agenda-view
@@ -57,7 +59,18 @@ export default function AgendaView({ entries, theme = DEFAULT_THEME, ghost, onEn
       style={{ color: theme.text, gap: cardPad, height: fill ? "100%" : undefined }}
     >
       {empty && (
-        <div className="rounded-xl p-6 text-center text-sm" style={{ background: theme.surface, color: theme.mutedText, border: `1px solid ${theme.gridLine}` }}>
+        <div
+          className="rounded-xl p-6 text-center text-sm"
+          style={{
+            background: isBackdrop
+              ? `color-mix(in oklab, ${theme.surface} ${Math.round(p * 100)}%, transparent)`
+              : theme.surface,
+            color: theme.mutedText,
+            border: `1px solid ${theme.gridLine}`,
+            backdropFilter: (theme.panelBlur ?? 10) ? `blur(${theme.panelBlur ?? 10}px)` : undefined,
+            WebkitBackdropFilter: (theme.panelBlur ?? 10) ? `blur(${theme.panelBlur ?? 10}px)` : undefined,
+          }}
+        >
           No classes yet.
         </div>
       )}
@@ -66,17 +79,26 @@ export default function AgendaView({ entries, theme = DEFAULT_THEME, ghost, onEn
           key={d}
           className="flex flex-col overflow-hidden rounded-xl"
           style={{
-            background: theme.surface,
+            background: isBackdrop
+              ? `color-mix(in oklab, ${theme.surface} ${Math.round(p * 100)}%, transparent)`
+              : theme.surface,
             border: `1px solid ${theme.gridLine}`,
             flex: fill ? "1 1 0" : undefined,
             minHeight: 0,
-            backdropFilter: theme.panelBlur ? `blur(${theme.panelBlur}px)` : undefined,
-            WebkitBackdropFilter: theme.panelBlur ? `blur(${theme.panelBlur}px)` : undefined,
+            backdropFilter: (theme.panelBlur ?? 10) ? `blur(${theme.panelBlur ?? 10}px)` : undefined,
+            WebkitBackdropFilter: (theme.panelBlur ?? 10) ? `blur(${theme.panelBlur ?? 10}px)` : undefined,
           }}
         >
           <header
             className="px-3 py-2 font-bold tracking-wide uppercase"
-            style={{ background: theme.headerBg, color: theme.headerText, borderBottom: `1px solid ${theme.gridLine}`, fontSize: 12 * theme.fontScale }}
+            style={{
+              background: isBackdrop
+                ? `color-mix(in oklab, ${theme.headerBg} ${Math.round(p * 100)}%, transparent)`
+                : theme.headerBg,
+              color: theme.headerText,
+              borderBottom: `1px solid ${theme.gridLine}`,
+              fontSize: 12 * theme.fontScale,
+            }}
           >
             {DAY_LABEL[d]}
           </header>

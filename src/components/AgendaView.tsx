@@ -65,7 +65,14 @@ export default function AgendaView({ entries, theme = DEFAULT_THEME, ghost, onEn
         <section
           key={d}
           className="flex flex-col overflow-hidden rounded-xl"
-          style={{ background: theme.surface, border: `1px solid ${theme.gridLine}`, flex: fill ? "1 1 0" : undefined, minHeight: 0 }}
+          style={{
+            background: theme.surface,
+            border: `1px solid ${theme.gridLine}`,
+            flex: fill ? "1 1 0" : undefined,
+            minHeight: 0,
+            backdropFilter: theme.panelBlur ? `blur(${theme.panelBlur}px)` : undefined,
+            WebkitBackdropFilter: theme.panelBlur ? `blur(${theme.panelBlur}px)` : undefined,
+          }}
         >
           <header
             className="px-3 py-2 font-bold tracking-wide uppercase"

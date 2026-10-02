@@ -20,8 +20,25 @@ import {
 import { inputCls } from "./ui.tsx";
 import ModeToggle from "./ModeToggle.tsx";
 
-/** Downscales an uploaded image to <=1600px and ~<=550KB JPEG for storage, and measures its average luminance. */
-async function processImage(file: File): Promise<{ dataUrl: string; lum: number }> {
+function isHeic(file: Blob | File): boolean {
+  const name = "name" in file ? (file.name || "").toLowerCase() : "";
+  const type = (file.type || "").toLowerCase();
+  return type.includes("heic") || type.includes("heif") || name.endsWith(".heic") || name.endsWith(".heif");
+}
+
+async function convertHeicToJpeg(file: Blob | File): Promise<Blob> {
+  const heic2anyModule = await import("heic2any");
+  const heic2any = heic2anyModule.default ?? heic2anyModule;
+  const res = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.82,
+  });
+  return Array.isArray(res) ? res[0] : res;
+}
+
+/** Downscales an uploaded image to <=1600px and ~<=500KB JPEG for storage, and measures its average luminance. */
+async function processImage(file: Blob | File): Promise<{ dataUrl: string; lum: number }> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -30,9 +47,10 @@ async function processImage(file: File): Promise<{ dataUrl: string; lum: number 
       i.onerror = () => reject(new Error("Could not read that image"));
       i.src = url;
     });
-    const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-    const w = Math.round(img.width * scale);
-    const h = Math.round(img.height * scale);
+    const maxDim = Math.max(img.width, img.height);
+    const scale = maxDim > 1600 ? 1600 / maxDim : 1;
+    let w = Math.round(img.width * scale);
+    let h = Math.round(img.height * scale);
     const canvas = document.createElement("canvas");
     canvas.width = w;
     canvas.height = h;
@@ -48,15 +66,26 @@ async function processImage(file: File): Promise<{ dataUrl: string; lum: number 
     for (let i = 0; i < px.length; i += 4) sum += luminance(rgbToHex([px[i], px[i + 1], px[i + 2]]));
     const lum = sum / (px.length / 4);
 
-    for (const q of [0.82, 0.7, 0.55, 0.4]) {
-      const dataUrl = canvas.toDataURL("image/jpeg", q);
-      if (dataUrl.length <= 550_000 || q === 0.4) return { dataUrl, lum };
+    let dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+    for (const q of [0.7, 0.55, 0.4]) {
+      if (dataUrl.length <= 500_000) break;
+      dataUrl = canvas.toDataURL("image/jpeg", q);
     }
-    return { dataUrl: canvas.toDataURL("image/jpeg", 0.4), lum };
+    // If still too large, downscale canvas dimensions
+    while (dataUrl.length > 500_000 && w > 400 && h > 400) {
+      w = Math.round(w * 0.75);
+      h = Math.round(h * 0.75);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+    }
+    return { dataUrl, lum };
   } finally {
     URL.revokeObjectURL(url);
   }
 }
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -158,12 +187,18 @@ function BackgroundSection() {
   const grad = theme.bgGradient ?? DEFAULT_GRADIENT;
   const fit = theme.bgFit ?? "cover";
 
-  const loadFile = async (file: File | undefined | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return setError("That file isn't an image.");
+  const loadFile = async (rawFile: File | Blob | undefined | null) => {
+    if (!rawFile) return;
+    const name = "name" in rawFile ? rawFile.name : "";
+    const isImage = (rawFile.type && rawFile.type.startsWith("image/")) || isHeic(rawFile) || /\.(jpe?g|png|webp|heic|heif|gif|bmp|avif)$/i.test(name);
+    if (!isImage) return setError("That file isn't an image.");
     setError("");
     setBusy(true);
     try {
+      let file: File | Blob = rawFile;
+      if (isHeic(rawFile)) {
+        file = await convertHeicToJpeg(rawFile);
+      }
       const { dataUrl, lum } = await processImage(file);
       setTheme({ backgroundImage: dataUrl, bgLum: lum, bgKind: "image", bgX: 50, bgY: 50, bgZoom: 1 });
     } catch (e) {
@@ -263,15 +298,19 @@ function BackgroundSection() {
               <Range label="Zoom" value={theme.bgZoom ?? 1} min={1} max={3} step={0.05} fmt={(v) => `${v.toFixed(2)}×`} onChange={(v) => setTheme({ bgZoom: v })} />
               <Range label="Blur" value={theme.bgBlur ?? 0} min={0} max={24} step={1} fmt={(v) => `${v}px`} onChange={(v) => setTheme({ bgBlur: v })} />
               <div className="flex gap-1.5">
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-lg border border-line px-2 py-1.5 text-xs font-semibold text-soft hover:bg-raised">
+                  <ImagePlus className="size-3.5" /> {busy ? "Processing…" : "Replace"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={busy}
+                    onChange={(e) => void loadFile(e.target.files?.[0])}
+                  />
+                </label>
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-line px-2 py-1.5 text-xs font-semibold text-soft hover:bg-raised"
-                >
-                  <ImagePlus className="size-3.5" /> Replace
-                </button>
-                <button
-                  type="button"
+                  disabled={busy}
                   onClick={() => setTheme({ backgroundImage: undefined, bgKind: "color", bgLum: undefined })}
                   className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-line px-2 py-1.5 text-xs font-semibold text-soft hover:bg-raised hover:text-bad"
                 >
@@ -294,13 +333,20 @@ function BackgroundSection() {
               className={`flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed px-3 py-5 text-center transition-colors ${dragOver ? "border-accent bg-accent/10" : "border-line"}`}
             >
               <ImagePlus className="size-6 text-faint" />
-              <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-semibold text-accent underline">
+              <label className="cursor-pointer text-xs font-semibold text-accent underline">
                 {busy ? "Processing…" : "Choose a photo"}
-              </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={busy}
+                  onChange={(e) => void loadFile(e.target.files?.[0])}
+                />
+              </label>
               <p className="text-[11px] text-faint">or drag one here, or paste with Ctrl+V. It stays on this device.</p>
             </div>
           )}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void loadFile(e.target.files?.[0])} />
           {error && <p className="text-xs text-bad">{error}</p>}
         </div>
       )}

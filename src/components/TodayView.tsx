@@ -13,10 +13,11 @@ import {
   weekInfo,
 } from "../lib/academic.ts";
 import { useAcademic, useNow } from "../lib/useAcademic.ts";
-import { blockColors } from "../lib/theme.ts";
+import { blockColors, hasBackdrop } from "../lib/theme.ts";
 import { fmt24 } from "../lib/time.ts";
 import { fmtTimeRange } from "./TimetableGrid.tsx";
 import { activePlan, usePlanner } from "../store/usePlanner.ts";
+import BackgroundLayer from "./BackgroundLayer.tsx";
 
 export default function TodayView() {
   const plan = usePlanner(activePlan);
@@ -85,9 +86,11 @@ export default function TodayView() {
     return `in ${d} min`;
   };
 
+  const bd = hasBackdrop(theme);
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-2xl space-y-4 p-3 sm:p-4">
+    <div className="relative min-h-0 flex-1 overflow-y-auto">
+      {bd && <BackgroundLayer theme={theme} />}
+      <div className="relative z-10 mx-auto max-w-2xl space-y-4 p-3 pb-24 sm:p-4">
         {/* headline */}
         <div>
           <h2 className="text-xl font-extrabold tracking-tight">

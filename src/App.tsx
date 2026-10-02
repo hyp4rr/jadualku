@@ -27,7 +27,7 @@ import type { Entry } from "./lib/types.ts";
 import { getSession } from "./lib/api.ts";
 import { activePlan, usePlanner } from "./store/usePlanner.ts";
 import { decodePlan, type SharePayload } from "./lib/share.ts";
-import { loadFont } from "./lib/theme.ts";
+import { hasBackdrop, loadFont } from "./lib/theme.ts";
 import { useAcademic } from "./lib/useAcademic.ts";
 import { weekInfo } from "./lib/academic.ts";
 import ClashBanner from "./components/ClashBanner.tsx";
@@ -36,6 +36,7 @@ import EntryEditDialog from "./components/EntryEditDialog.tsx";
 import DesignDrawer from "./components/DesignDrawer.tsx";
 import ShareDialog from "./components/ShareDialog.tsx";
 import TimetableView from "./components/TimetableView.tsx";
+import BackgroundLayer from "./components/BackgroundLayer.tsx";
 import ModeToggle from "./components/ModeToggle.tsx";
 import AboutDialog, { AboutButton, AppFooter, DisclaimerBanner } from "./components/AboutDialog.tsx";
 import ReportDialog, { ReportButton } from "./components/ReportDialog.tsx";
@@ -449,24 +450,27 @@ export default function App() {
                 </button>
               </div>
             )}
-            <div className="min-h-0 flex-1 overflow-y-auto pb-20 lg:pb-2 print:overflow-visible">
+            <div className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
               {plan.entries.length === 0 && !ghost ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
-                  <CalendarDays className="size-10 text-faint" />
-                  <p className="max-w-sm text-sm text-soft">
-                    Your timetable is empty. Add classes on the left — browse a campus, look up a group code, import your
-                    matric timetable, or drop in a custom block.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setSheetOpen(true)}
-                    className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent lg:hidden"
-                  >
-                    Add classes
-                  </button>
+                <div className="relative flex min-h-full flex-col items-center justify-center gap-2 overflow-hidden p-8 pb-24 text-center">
+                  {hasBackdrop(theme) && <BackgroundLayer theme={theme} />}
+                  <div className="relative z-10 flex max-w-sm flex-col items-center gap-3 rounded-2xl border border-line bg-panel/85 p-6 shadow-sm backdrop-blur-md">
+                    <CalendarDays className="size-10 text-accent" />
+                    <p className="text-sm text-soft">
+                      Your timetable is empty. Add classes on the left — browse a campus, look up a group code, import your
+                      matric timetable, or drop in a custom block.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSheetOpen(true)}
+                      className="mt-1 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent lg:hidden"
+                    >
+                      Add classes
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className={timetableLayout === "agenda" ? "mx-auto max-w-2xl" : "h-full"}>
+                <div className={timetableLayout === "agenda" ? "mx-auto flex min-h-full max-w-2xl flex-col" : "h-full"}>
                   <TimetableView
                     entries={plan.entries}
                     theme={theme}
@@ -475,7 +479,7 @@ export default function App() {
                     onBlockClick={setEditing}
                     layout={timetableLayout}
                     fill={timetableLayout !== "agenda"}
-                    className={timetableLayout !== "agenda" ? "h-full" : undefined}
+                    className={timetableLayout === "agenda" ? "min-h-full flex-1 pb-20 lg:pb-2" : "h-full pb-20 lg:pb-0"}
                   />
                 </div>
               )}

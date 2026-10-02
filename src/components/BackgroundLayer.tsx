@@ -45,9 +45,14 @@ export default function BackgroundLayer({ theme, scale = 1 }: { theme: ThemeSett
             backgroundRepeat: fit === "tile" ? "repeat" : "no-repeat",
             backgroundSize: fit === "cover" ? "cover" : fit === "contain" ? "contain" : fit === "stretch" ? "100% 100%" : `${320 * zoom * scale}px auto`,
             backgroundPosition: `${x}% ${y}%`,
-            transform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad})` : undefined,
+            transform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad}) translateZ(0)` : "translateZ(0)",
+            WebkitTransform: scaled && (zoom !== 1 || blur) ? `scale(${zoom * blurPad}) translateZ(0)` : "translateZ(0)",
             transformOrigin: `${x}% ${y}%`,
+            WebkitTransformOrigin: `${x}% ${y}%`,
             filter: blur ? `blur(${blur}px)` : undefined,
+            WebkitFilter: blur ? `blur(${blur}px)` : undefined,
+            WebkitBackfaceVisibility: "hidden",
+            willChange: blur || zoom !== 1 ? "transform, filter" : undefined,
           }}
         />
       )}

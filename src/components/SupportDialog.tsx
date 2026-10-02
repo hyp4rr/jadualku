@@ -6,8 +6,8 @@ export function SupportButton({ onClick, className = "" }: { onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      aria-label="Belanja kopi (Support)"
-      title="Belanja kopi (DuitNow QR)"
+      aria-label="Buy me a coffee (Support)"
+      title="Buy me a coffee (DuitNow QR)"
       className={`rounded-lg border border-line bg-panel p-2 text-soft transition-colors hover:border-accent/40 hover:bg-raised hover:text-accent ${className}`}
     >
       <Coffee className="size-4 text-accent" />
@@ -17,14 +17,14 @@ export function SupportButton({ onClick, className = "" }: { onClick: () => void
 
 export default function SupportDialog({ onClose }: { onClose: () => void }) {
   return (
-    <Modal title="Belanja Kopi (Support)" onClose={onClose}>
+    <Modal title="Support & Tip (Buy Me a Coffee)" onClose={onClose}>
       <div className="flex flex-col items-center text-center">
         {/* Intro */}
         <div className="mb-4 flex flex-col items-center gap-1.5">
           <div className="flex size-12 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-inner">
             <Coffee className="size-6" />
           </div>
-          <h3 className="text-base font-bold text-ink">Belanja Dev Kopi!</h3>
+          <h3 className="text-base font-bold text-ink">Buy the Dev a Coffee!</h3>
           <p className="max-w-xs text-xs text-soft leading-relaxed">
             JadualUiTMKu is free &amp; ad-free for all UiTM students. If this helped you plan your timetable clash-free, consider tipping RM1–RM5 or helping with server costs!
           </p>

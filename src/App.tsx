@@ -372,7 +372,7 @@ export default function App() {
                 }}
                 className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-xs font-semibold text-soft hover:bg-raised"
               >
-                <Coffee className="size-3.5 text-accent" /> Belanja Kopi
+                <Coffee className="size-3.5 text-accent" /> Buy Me a Coffee
               </button>
               <button
                 type="button"

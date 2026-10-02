@@ -31,7 +31,7 @@ export function FooterLinks({
       )}
       {onSupport && (
         <button type="button" onClick={onSupport} className={link}>
-          <Coffee className="size-3.5 text-accent" /> Belanja Kopi
+          <Coffee className="size-3.5 text-accent" /> Buy Me a Coffee
         </button>
       )}
       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={link}>
@@ -170,7 +170,7 @@ export default function AboutDialog({
                 className="flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5 font-semibold text-ink transition-colors hover:border-accent hover:bg-raised"
               >
                 <span className="flex items-center gap-2">
-                  <Coffee className="size-4 text-accent" /> Belanja Kopi
+                  <Coffee className="size-4 text-accent" /> Buy Me a Coffee
                 </span>
                 <span className="text-[11px] font-bold text-[#ea1a65]">QR</span>
               </button>

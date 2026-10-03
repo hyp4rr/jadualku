@@ -38,7 +38,7 @@ export function useAcademic(): AcademicContext {
   return useMemo(() => {
     const key = calendar.semesterKey === "auto" ? "auto" : calendar.semesterKey;
     return {
-      semester: resolveSemester(key),
+      semester: resolveSemester(key, calendar.group),
       state: calendar.state,
       group: calendar.group,
       semesterKey: key,

@@ -21,16 +21,7 @@ import { buildPlanIcs, saveCalendarFile } from "../lib/icsFile.ts";
 import { useAcademic } from "../lib/useAcademic.ts";
 import { activePlan, usePlanner } from "../store/usePlanner.ts";
 import { inputCls } from "./ui.tsx";
-
-const PERIOD_COLORS: Record<PeriodKind, string> = {
-  lecture: "#3b82f6",
-  online: "#0ea5e9",
-  test: "#f59e0b",
-  break: "#94a3b8",
-  revision: "#a78bfa",
-  exam: "#ef4444",
-  eet: "#ec4899",
-};
+import DateEventsDialog, { PERIOD_COLORS } from "./DateEventsDialog.tsx";
 
 const fmtMin = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 /** "18 Jan" — fmtIso without the weekday prefix, for compact headline ranges. */
@@ -46,6 +37,7 @@ export default function CalendarView() {
 
   const [month, setMonth] = useState(() => today.slice(0, 7));
   const [showAllStates, setShowAllStates] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const weeks = useMemo(() => (semester ? teachingWeeks(semester, state) : []), [semester, state]);
   const info = useMemo(() => (semester ? weekInfo(semester, today, state) : null), [semester, today, state]);
@@ -288,21 +280,53 @@ export default function CalendarView() {
               const count = classCountOn(iso);
               const assess = assessOn(iso);
               const isToday = iso === today;
+              const isSelected = selectedDate === iso;
               return (
-                <div
+                <button
                   key={iso}
-                  className={`min-h-16 bg-panel p-1 text-left align-top ${inMonth ? "" : "opacity-35"}`}
-                  style={{ background: kind && inMonth ? `color-mix(in oklab, ${PERIOD_COLORS[kind]} 14%, transparent)` : undefined }}
+                  type="button"
+                  onClick={() => setSelectedDate(iso)}
+                  className={`group relative flex min-h-16 flex-col p-1.5 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    inMonth
+                      ? "bg-panel hover:bg-raised/80 hover:shadow-sm"
+                      : "bg-panel/40 opacity-35 hover:opacity-75 hover:bg-raised/40"
+                  } ${isSelected ? "ring-2 ring-accent z-10" : ""}`}
+                  style={{
+                    background:
+                      kind && inMonth
+                        ? `color-mix(in oklab, ${PERIOD_COLORS[kind]} 14%, var(--panel))`
+                        : undefined,
+                  }}
+                  title={`Click to view events for ${iso}`}
                 >
-                  <div className={`text-[11px] font-semibold ${isToday ? "text-accent" : "text-soft"}`}>
-                    {isToday ? "● " : ""}
-                    {Number(iso.slice(8))}
+                  <div className="flex w-full items-center justify-between">
+                    <span
+                      className={`text-[11px] font-bold ${
+                        isToday
+                          ? "inline-flex items-center gap-1 rounded-full bg-accent/20 px-1.5 py-0.2 text-accent"
+                          : "text-soft group-hover:text-ink"
+                      }`}
+                    >
+                      {isToday && <span className="size-1.5 rounded-full bg-accent animate-pulse" />}
+                      {Number(iso.slice(8))}
+                    </span>
+                    <div className="flex items-center gap-0.5">
+                      {hols.length > 0 && (
+                        <span className="size-1.5 rounded-full bg-bad" title="Holiday" />
+                      )}
+                      {count > 0 && (
+                        <span className="size-1.5 rounded-full bg-accent" title={`${count} classes`} />
+                      )}
+                      {assess.length > 0 && (
+                        <span className="size-1.5 rounded-full bg-good" title={`${assess.length} assessments`} />
+                      )}
+                    </div>
                   </div>
                   {hols.map((h, i) => (
                     <div
                       key={i}
                       title={`${h.name}${h.states === "all" ? " (national)" : ` (${(h.states as string[]).join(", ")})`}${h.tentative ? " — tentative" : ""}`}
-                      className={`mt-0.5 truncate rounded px-1 text-[9px] font-semibold ${
+                      className={`mt-0.5 w-full truncate rounded px-1 text-[9px] font-semibold ${
                         h.states === "all" ? "bg-bad/20 text-bad" : "border border-warn/50 text-warn"
                       }`}
                     >
@@ -310,13 +334,21 @@ export default function CalendarView() {
                       {h.tentative ? "?" : ""}
                     </div>
                   ))}
-                  {count > 0 && inMonth && <div className="mt-0.5 text-[9px] font-medium text-faint">{count} class{count === 1 ? "" : "es"}</div>}
+                  {count > 0 && inMonth && (
+                    <div className="mt-0.5 text-[9px] font-medium text-faint">
+                      {count} class{count === 1 ? "" : "es"}
+                    </div>
+                  )}
                   {assess.map((a, i) => (
-                    <div key={`a${i}`} className="mt-0.5 truncate rounded bg-accent/20 px-1 text-[9px] font-semibold text-accent" title={`${a.code} ${a.name}`}>
+                    <div
+                      key={`a${i}`}
+                      className="mt-0.5 w-full truncate rounded bg-accent/20 px-1 text-[9px] font-semibold text-accent"
+                      title={`${a.code} ${a.name}`}
+                    >
                       {a.code} {a.name}
                     </div>
                   ))}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -329,15 +361,21 @@ export default function CalendarView() {
             <ul className="space-y-1">
               {upcoming.length === 0 && <li className="text-xs text-faint">Nothing scheduled in the next 30 days.</li>}
               {upcoming.map((u, i) => (
-                <li key={i} className="flex items-baseline gap-2 text-xs">
-                  <span className="w-20 shrink-0 font-mono text-faint">{fmtIso(u.date)}</span>
-                  <span
-                    className={`size-2 shrink-0 self-center rounded-full ${
-                      u.kind === "holiday" ? "bg-bad" : u.kind === "assessment" ? "bg-accent" : "bg-good"
-                    }`}
-                  />
-                  <span className="min-w-0 text-soft">{u.label}</span>
-                  <span className="ml-auto shrink-0 text-[10px] text-faint">in {isoDiffDays(today, u.date)}d</span>
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDate(u.date)}
+                    className="group flex w-full items-baseline gap-2 rounded-lg p-1.5 text-left text-xs transition-colors hover:bg-raised/70"
+                  >
+                    <span className="w-20 shrink-0 font-mono text-faint group-hover:text-soft">{fmtIso(u.date)}</span>
+                    <span
+                      className={`size-2 shrink-0 self-center rounded-full ${
+                        u.kind === "holiday" ? "bg-bad" : u.kind === "assessment" ? "bg-accent" : "bg-good"
+                      }`}
+                    />
+                    <span className="min-w-0 font-medium text-soft group-hover:text-ink">{u.label}</span>
+                    <span className="ml-auto shrink-0 text-[10px] text-faint">in {isoDiffDays(today, u.date)}d</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -349,9 +387,15 @@ export default function CalendarView() {
             <ul className="space-y-1">
               {holidayHits.length === 0 && <li className="text-xs text-faint">No classes land on {state} holidays this semester.</li>}
               {holidayHits.map((o, i) => (
-                <li key={i} className="text-xs text-soft">
-                  <b className="text-ink">{fmtIso(o.date)}</b> — {o.entry.subjectCode} ({o.entry.group}) {fmtMin(o.session.start)}–
-                  {fmtMin(o.session.end)} · <span className="text-bad">{o.holidayName}</span>
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDate(o.date)}
+                    className="group w-full rounded-lg p-1.5 text-left text-xs text-soft transition-colors hover:bg-raised/70"
+                  >
+                    <b className="text-ink group-hover:text-accent">{fmtIso(o.date)}</b> — {o.entry.subjectCode} ({o.entry.group}) {fmtMin(o.session.start)}–
+                    {fmtMin(o.session.end)} · <span className="text-bad">{o.holidayName}</span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -378,6 +422,22 @@ export default function CalendarView() {
               {ac.holidaysFetchedAt ? ` · fetched ${new Date(ac.holidaysFetchedAt).toLocaleString()}` : ""}
             </p>
           </footer>
+        )}
+
+        {/* Date events popup modal */}
+        {selectedDate && (
+          <DateEventsDialog
+            iso={selectedDate}
+            onClose={() => setSelectedDate(null)}
+            onSelectDate={setSelectedDate}
+            semester={semester}
+            state={state}
+            today={today}
+            holidays={ac.holidays}
+            occurrences={occurrences}
+            assessments={assessments}
+            showAllStates={showAllStates}
+          />
         )}
       </div>
     </div>

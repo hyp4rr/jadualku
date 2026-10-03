@@ -179,19 +179,23 @@ export function weekInfo(semester: Semester, date: string, state: MyState): Week
 }
 
 /** Pick the semester for a calendar key, or "auto" = semester containing today, else the next upcoming. */
-export function resolveSemester(key: string): Semester | null {
+export function resolveSemester(key: string, group?: "A" | "B"): Semester | null {
   if (key !== "auto") return SEMESTERS.find((s) => `${s.group}-${s.code}` === key) ?? null;
   const today = todayIso();
+  const pool = group ? SEMESTERS.filter((s) => s.group === group) : SEMESTERS;
   const span = (s: Semester) => {
     const ranges = s.periods.map((p) => ({ start: p.start, end: p.end }));
-    return { start: ranges.reduce((m, r) => (r.start < m ? r.start : m), ranges[0].start), end: ranges.reduce((m, r) => (r.end > m ? r.end : m), ranges[0].end) };
+    return {
+      start: ranges.reduce((m, r) => (r.start < m ? r.start : m), ranges[0].start),
+      end: ranges.reduce((m, r) => (r.end > m ? r.end : m), ranges[0].end),
+    };
   };
-  for (const s of SEMESTERS) {
+  for (const s of pool) {
     const r = span(s);
     if (today >= r.start && today <= r.end) return s;
   }
-  const upcoming = SEMESTERS.filter((s) => span(s).start > today).sort((a, b) => (span(a).start < span(b).start ? -1 : 1));
-  return upcoming[0] ?? SEMESTERS[SEMESTERS.length - 1] ?? null;
+  const upcoming = pool.filter((s) => span(s).start > today).sort((a, b) => (span(a).start < span(b).start ? -1 : 1));
+  return upcoming[0] ?? pool[pool.length - 1] ?? null;
 }
 
 export function holidayApplies(h: Holiday, state: MyState): boolean {

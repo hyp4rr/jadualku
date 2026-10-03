@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Copy, Download, Link2, Pencil, Plus, Share2, Trash2, Upload, X } from "lucide-react";
 import { activePlan, usePlanner } from "../store/usePlanner.ts";
 import { decodeBackup, encodeBackup, encodePlan, type Backup } from "../lib/share.ts";
+import { shortenUrl } from "../lib/api.ts";
+import ShareLinkModal from "./ShareLinkModal.tsx";
 
 function uid(): string {
   return crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function shareUrlFor(payload: string): string {
-  return `${location.origin}${location.pathname}#share=${payload}`;
+  return `${location.origin}${location.pathname}?s=${payload}`;
 }
 
 export default function PlansMenu() {
@@ -20,6 +22,8 @@ export default function PlansMenu() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareModalUrl, setShareModalUrl] = useState<string | null>(null);
   const [pending, setPending] = useState<Backup | null>(null);
   const [importError, setImportError] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -34,23 +38,27 @@ export default function PlansMenu() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const shareLink = async (useSystemShare: boolean) => {
-    if (!current) return;
-    const url = shareUrlFor(await encodePlan(current, theme));
-    if (useSystemShare && navigator.share) {
-      try {
-        await navigator.share({ url, title: `JadualUiTMKu — ${current.name}` });
-        return;
-      } catch (e) {
-        if ((e as Error).name === "AbortError") return;
-      }
-    }
+  const shareLink = async (openModal: boolean) => {
+    if (!current || sharing) return;
+    setSharing(true);
     try {
+      const longUrl = shareUrlFor(await encodePlan(current, theme));
+      const url = await shortenUrl(longUrl);
+
+      if (openModal) {
+        setShareModalUrl(url);
+        setOpen(false);
+        return;
+      }
+
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("Copy the share link:", url);
+      const fallbackUrl = shareUrlFor(await encodePlan(current, theme));
+      window.prompt("Copy your share link:", fallbackUrl);
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -178,13 +186,30 @@ export default function PlansMenu() {
             </button>
           </div>
           <div className="border-t border-line p-2">
-            {typeof navigator !== "undefined" && "share" in navigator && (
-              <button type="button" onClick={() => void shareLink(true)} className={menuBtn}>
-                <Share2 className="size-4 text-faint" /> Share…
-              </button>
-            )}
-            <button type="button" onClick={() => void shareLink(false)} className={menuBtn}>
-              <Link2 className="size-4 text-faint" /> {copied ? "Link copied!" : "Copy share link"}
+            <button
+              type="button"
+              disabled={sharing}
+              onClick={() => void shareLink(true)}
+              className={`${menuBtn} disabled:opacity-50`}
+            >
+              <Share2 className="size-4 text-faint" /> {sharing ? "Shortening…" : "Share…"}
+            </button>
+            <button
+              type="button"
+              disabled={sharing}
+              onClick={() => void shareLink(false)}
+              className={`${menuBtn} disabled:opacity-50`}
+            >
+              {copied ? (
+                <>
+                  <Check className="size-4 text-good" /> <span className="font-semibold text-good">Short link copied!</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className={`size-4 text-faint ${sharing ? "animate-pulse" : ""}`} />{" "}
+                  {sharing ? "Shortening link…" : "Copy share link"}
+                </>
+              )}
             </button>
           </div>
           <div className="border-t border-line p-2">
@@ -241,6 +266,14 @@ export default function PlansMenu() {
             </div>
           </div>
         </div>
+      )}
+
+      {shareModalUrl && current && (
+        <ShareLinkModal
+          url={shareModalUrl}
+          planName={current.name}
+          onClose={() => setShareModalUrl(null)}
+        />
       )}
     </div>
   );

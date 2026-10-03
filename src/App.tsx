@@ -288,11 +288,24 @@ export default function App() {
   /** On narrow screens the agenda is the default; this toggles back to the theme layout. */
   const [mobileGrid, setMobileGrid] = useState(false);
 
-  // Incoming #share= link — decode once, then clear the hash.
+  // Incoming #share= or ?s= link — decode once, then clean the URL.
   useEffect(() => {
-    if (!location.hash.startsWith("#share=")) return;
-    const payload = location.hash.slice("#share=".length);
-    history.replaceState(null, "", `${location.pathname}${location.search}#/`);
+    let payload = "";
+    if (location.hash.startsWith("#share=")) {
+      payload = location.hash.slice("#share=".length);
+      history.replaceState(null, "", `${location.pathname}${location.search}#/`);
+    } else {
+      const sp = new URLSearchParams(location.search);
+      const s = sp.get("s") || sp.get("share");
+      if (s) {
+        payload = s;
+        sp.delete("s");
+        sp.delete("share");
+        const query = sp.toString() ? `?${sp.toString()}` : "";
+        history.replaceState(null, "", `${location.pathname}${query}${location.hash || "#/"}`);
+      }
+    }
+    if (!payload) return;
     decodePlan(payload)
       .then(setIncomingShare)
       .catch((e) => console.warn("Invalid share link:", e));

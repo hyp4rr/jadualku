@@ -77,3 +77,47 @@ export async function submitReport(payload: ReportPayload): Promise<{ ok: boolea
 
   return { ok: true, message: typeof data.message === "string" ? data.message : "Report sent successfully." };
 }
+
+export async function shortenUrl(longUrl: string): Promise<string> {
+  // 1. Try backend endpoint /api/shorten
+  try {
+    const res = await fetch("/api/shorten", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: longUrl }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { shortUrl?: string };
+      if (typeof data.shortUrl === "string" && data.shortUrl) return data.shortUrl;
+    }
+  } catch {}
+
+  // 2. Client-side fallback to CleanURI
+  try {
+    const res = await fetch("https://cleanuri.com/api/v1/shorten", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "url=" + encodeURIComponent(longUrl),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { result_url?: string };
+      if (data && typeof data.result_url === "string" && data.result_url) return data.result_url;
+    }
+  } catch {}
+
+  // 3. Client-side fallback to TinyURL
+  try {
+    const res = await fetch("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(longUrl), {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith("http")) return text.trim();
+    }
+  } catch {}
+
+  return longUrl;
+}
+

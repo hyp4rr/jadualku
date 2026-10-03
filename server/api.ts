@@ -349,6 +349,80 @@ ${description.trim()}${diagText}`;
   return send(res, 200, { ok: true, message: "Report sent successfully." });
 }
 
+// ---- URL Shortening ----
+
+const shortUrlCache = new Map<string, string>();
+
+async function shortenUrlService(rawUrl: string): Promise<string | null> {
+  // 1. CleanURI: direct 301, clean URL, no ads
+  try {
+    const res = await fetch("https://cleanuri.com/api/v1/shorten", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "url=" + encodeURIComponent(rawUrl),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { result_url?: string };
+      if (data && typeof data.result_url === "string" && data.result_url) {
+        return data.result_url;
+      }
+    }
+  } catch {}
+
+  // 2. TinyURL fallback
+  try {
+    const res = await fetch("https://tinyurl.com/api-create.php?url=" + encodeURIComponent(rawUrl), {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith("http")) return text.trim();
+    }
+  } catch {}
+
+  // 3. Ulvis fallback
+  try {
+    const res = await fetch("https://ulvis.net/API/write/get?url=" + encodeURIComponent(rawUrl) + "&type=json", {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { success?: boolean; data?: { url?: string } };
+      if (data && data.success && data.data && data.data.url) return data.data.url;
+    }
+  } catch {}
+
+  return null;
+}
+
+async function handleShorten(req: IncomingMessage, res: ServerResponse) {
+  const body = await readJsonBody(req);
+  const rawUrl = typeof body.url === "string" ? body.url.trim() : "";
+  if (!rawUrl || (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://"))) {
+    throw new HttpError(400, "Valid http(s) URL is required");
+  }
+  if (rawUrl.length > 50_000) {
+    throw new HttpError(400, "URL too long");
+  }
+
+  const cached = shortUrlCache.get(rawUrl);
+  if (cached) {
+    return send(res, 200, { shortUrl: cached, cached: true });
+  }
+
+  const short = await shortenUrlService(rawUrl);
+  if (short) {
+    shortUrlCache.set(rawUrl, short);
+    if (shortUrlCache.size > 2000) {
+      const oldest = shortUrlCache.keys().next().value;
+      if (oldest) shortUrlCache.delete(oldest);
+    }
+    return send(res, 200, { shortUrl: short, cached: false });
+  }
+
+  return send(res, 200, { shortUrl: rawUrl, fallback: true });
+}
+
 // ---- Router ----
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse) {
@@ -356,6 +430,10 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse) {
   try {
     if (req.method === "POST" && url.pathname === "/report") {
       return await handleReport(req, res);
+    }
+
+    if (req.method === "POST" && url.pathname === "/shorten") {
+      return await handleShorten(req, res);
     }
 
     if (req.method !== "GET") return send(res, 405, { error: "GET only" });

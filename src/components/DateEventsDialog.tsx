@@ -24,9 +24,9 @@ import {
 } from "../lib/academic.ts";
 
 export const PERIOD_COLORS: Record<PeriodKind, string> = {
-  lecture: "#3b82f6",
-  online: "#0ea5e9",
-  test: "#f59e0b",
+  lecture: "#14b8a6",
+  online: "#38bdf8",
+  test: "#fb923c",
   break: "#94a3b8",
   revision: "#a78bfa",
   exam: "#ef4444",

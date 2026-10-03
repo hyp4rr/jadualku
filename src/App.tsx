@@ -1,12 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Bug,
-  CalendarDays,
   CalendarRange,
-  ChevronDown,
+  Check,
   Clock,
   Coffee,
+  Columns3,
+  Ellipsis,
   FolderSearch,
   GitCompareArrows,
   GraduationCap,
@@ -18,8 +19,11 @@ import {
   Moon,
   Palette,
   PenLine,
+  Plus,
+  Rows3,
   Search,
   Sun,
+  SunMoon,
   Undo2,
   Wand2,
   X,
@@ -28,18 +32,23 @@ import type { Entry } from "./lib/types.ts";
 import { getSession } from "./lib/api.ts";
 import { activePlan, usePlanner } from "./store/usePlanner.ts";
 import { decodePlan, type SharePayload } from "./lib/share.ts";
-import { hasBackdrop, loadFont } from "./lib/theme.ts";
+import { loadFont } from "./lib/theme.ts";
 import { useAcademic } from "./lib/useAcademic.ts";
 import { weekInfo } from "./lib/academic.ts";
+import { findClashes } from "./lib/clash.ts";
 import ClashBanner from "./components/ClashBanner.tsx";
 import PlansMenu from "./components/PlansMenu.tsx";
 import EntryEditDialog from "./components/EntryEditDialog.tsx";
 import DesignDrawer from "./components/DesignDrawer.tsx";
 import ShareDialog from "./components/ShareDialog.tsx";
 import TimetableView from "./components/TimetableView.tsx";
-import BackgroundLayer from "./components/BackgroundLayer.tsx";
-import AboutDialog, { AboutButton, AppFooter, DisclaimerBanner } from "./components/AboutDialog.tsx";
-import ReportDialog, { ReportButton } from "./components/ReportDialog.tsx";
+import ModeToggle from "./components/ModeToggle.tsx";
+import { LogoMark, Wordmark } from "./components/Brand.tsx";
+import { BottomNav, SlidingNav } from "./components/AppNav.tsx";
+import CommandPalette, { type Command } from "./components/CommandPalette.tsx";
+import StartPanel from "./components/StartPanel.tsx";
+import AboutDialog, { AppFooter, DisclaimerBanner } from "./components/AboutDialog.tsx";
+import ReportDialog from "./components/ReportDialog.tsx";
 import SupportDialog, { SupportButton } from "./components/SupportDialog.tsx";
 import BrowsePanel from "./components/panels/BrowsePanel.tsx";
 import GroupCodePanel from "./components/panels/GroupCodePanel.tsx";
@@ -67,6 +76,8 @@ const VIEWS = [
 
 type ViewId = (typeof VIEWS)[number]["id"];
 const VIEW_IDS = new Set<string>(VIEWS.map((v) => v.id));
+/** Views pinned to the phone bottom bar; the rest live behind "More". */
+const BOTTOM_IDS: ViewId[] = ["home", "timetable", "today", "calendar"];
 
 const TABS = [
   { id: "browse", label: "Add classes", short: "Browse", icon: Search },
@@ -95,9 +106,9 @@ function useHashView(): [ViewId, (v: ViewId) => void] {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  const nav = (v: ViewId) => {
+  const nav = useCallback((v: ViewId) => {
     location.hash = `#/${v}`;
-  };
+  }, []);
   return [view, nav];
 }
 
@@ -125,25 +136,35 @@ function useDarkMode() {
   return { dark, toggle: () => setDark((d) => !d) };
 }
 
-function SummaryStrip({ entries }: { entries: Entry[] }) {
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+
+/** Subjects / credits / hours / clash status as quiet chips above the timetable. */
+function StatChips({ entries }: { entries: Entry[] }) {
   const stats = useMemo(() => {
     const visible = entries.filter((e) => !e.hidden);
     const subjects = new Set(visible.map((e) => e.subjectCode)).size;
     const credits = visible.reduce((sum, e) => sum + (e.credits ?? 0), 0);
     const minutes = visible.reduce((sum, e) => sum + e.sessions.reduce((a, s) => a + (s.end - s.start), 0), 0);
-    return { subjects, credits, hours: minutes / 60 };
+    return { subjects, credits, hours: minutes / 60, clashes: findClashes(visible).length };
   }, [entries]);
-  if (!entries.length) return null;
+  const chip = "inline-flex items-center gap-1.5 rounded-full border border-line bg-panel/70 px-2.5 py-1 text-xs text-soft backdrop-blur";
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-line bg-panel px-4 py-2 text-xs text-soft print:hidden">
-      <span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      {stats.clashes === 0 ? (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-good/30 bg-good/10 px-2.5 py-1 text-xs font-semibold text-good">
+          <Check className="size-3.5" /> No clashes
+        </span>
+      ) : null}
+      <span className={chip}>
         <b className="text-ink">{stats.subjects}</b> {stats.subjects === 1 ? "subject" : "subjects"}
       </span>
-      <span>
-        <b className="text-ink">{stats.credits}</b> credits
-      </span>
-      <span>
-        <b className="text-ink">{stats.hours % 1 ? stats.hours.toFixed(1) : stats.hours}</b> h contact / week
+      {stats.credits > 0 && (
+        <span className={chip}>
+          <b className="text-ink">{stats.credits}</b> credits
+        </span>
+      )}
+      <span className={chip}>
+        <b className="text-ink">{stats.hours % 1 ? stats.hours.toFixed(1) : stats.hours}</b> h / week
       </span>
     </div>
   );
@@ -162,9 +183,9 @@ function RecolorToast() {
   }, [undoColors]);
   if (!shown || !undoColors?.length) return null;
   return (
-    <div className="fixed bottom-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-panel px-4 py-2.5 text-sm shadow-2xl lg:bottom-4 print:hidden">
+    <div className="anim-sheet surface fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 text-sm shadow-2xl sm:bottom-6 print:hidden">
       <span className="text-soft">
-        Subjects recoloured from the palette — <b className="text-ink">{undoColors.length}</b> blocks
+        Subjects recoloured from the palette: <b className="text-ink">{undoColors.length}</b> blocks
       </span>
       <button
         type="button"
@@ -172,7 +193,7 @@ function RecolorToast() {
           undoRecolor();
           setShown(false);
         }}
-        className="flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-on-accent"
+        className="btn-accent flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold"
       >
         <Undo2 className="size-3.5" /> Undo
       </button>
@@ -183,17 +204,75 @@ function RecolorToast() {
   );
 }
 
+/** Desktop overflow menu: the less-used actions, out of the way but one click from anywhere. */
+function MoreMenu({ items }: { items: { icon: typeof Info; label: string; onClick: () => void; tone?: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="More"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="More"
+        className="rounded-xl border border-line bg-panel/70 p-2 text-soft backdrop-blur hover:bg-raised hover:text-ink"
+      >
+        <Ellipsis className="size-4" />
+      </button>
+      {open && (
+        <div role="menu" className="anim-sheet surface absolute top-full right-0 z-40 mt-2 w-60 overflow-hidden rounded-2xl p-1.5 shadow-2xl">
+          {items.map((it) => (
+            <button
+              key={it.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                it.onClick();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-soft transition-colors hover:bg-raised hover:text-ink"
+            >
+              <it.icon className={`size-4 ${it.tone ?? ""}`} /> {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const { dark, toggle } = useDarkMode();
   const [view, nav] = useHashView();
   const narrow = useNarrow();
   const plan = usePlanner(activePlan);
+  const plans = usePlanner((s) => s.plans);
   const theme = usePlanner((s) => s.theme);
+  const setTheme = usePlanner((s) => s.setTheme);
+  const setActivePlan = usePlanner((s) => s.setActivePlan);
+  const createPlan = usePlanner((s) => s.createPlan);
   const ghost = usePlanner((s) => s.ghost);
   const highlightIds = usePlanner((s) => s.highlightIds);
   const basketCount = usePlanner((s) => s.basket.length);
   const [tab, setTab] = useState<TabId>("browse");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [designOpen, setDesignOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -201,8 +280,6 @@ export default function App() {
   const [session, setSession] = useState("");
   const [editing, setEditing] = useState<Entry | null>(null);
   const [incomingShare, setIncomingShare] = useState<SharePayload | null>(null);
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
-  const viewMenuRef = useRef<HTMLDivElement>(null);
   const ac = useAcademic();
   const weekNo = useMemo(
     () => (ac.semester ? weekInfo(ac.semester, ac.today, ac.state).week : undefined),
@@ -221,7 +298,7 @@ export default function App() {
       .catch((e) => console.warn("Invalid share link:", e));
   }, []);
 
-  // Listen for navigation triggers from HomeView
+  // Navigation triggers from other views (Home cards etc.).
   useEffect(() => {
     const onSetTab = (e: Event) => {
       const targetTab = (e as CustomEvent<TabId>).detail;
@@ -239,15 +316,17 @@ export default function App() {
     };
   }, []);
 
-  // Close the mobile view menu on outside click.
+  // Ctrl/Cmd+K opens the command palette from anywhere.
   useEffect(() => {
-    if (!viewMenuOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) setViewMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [viewMenuOpen]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Lazily fetch the selected timetable font.
   useEffect(() => {
@@ -259,6 +338,58 @@ export default function App() {
       .then((r) => setSession(r.code))
       .catch(() => setSession(""));
   }, []);
+
+  // Leaving the timetable closes any open phone sheets.
+  useEffect(() => {
+    setSheetOpen(false);
+    setMoreOpen(false);
+  }, [view]);
+
+  const openTab = useCallback(
+    (t: TabId) => {
+      nav("timetable");
+      setTab(t);
+      setSheetOpen(true);
+    },
+    [nav],
+  );
+
+  const commands: Command[] = useMemo(() => {
+    const go = (v: (typeof VIEWS)[number]) => ({
+      id: `go-${v.id}`,
+      label: v.label,
+      group: "Go to",
+      icon: v.icon,
+      keywords: v.id,
+      run: () => nav(v.id),
+    });
+    return [
+      ...VIEWS.map(go),
+      ...TABS.map<Command>((t) => ({
+        id: `tab-${t.id}`,
+        label: t.id === "browse" ? "Browse campus & subjects" : t.id === "group" ? "Add by group code" : t.id === "matric" ? "Import from matric number" : t.id === "manual" ? "Add a custom block" : "Open the auto-planner",
+        group: "Add classes",
+        icon: t.icon,
+        keywords: `${t.label} add class subject course`,
+        run: () => openTab(t.id),
+      })),
+      { id: "design", label: "Customize design", group: "Appearance", icon: Palette, hint: "Colours, fonts, backgrounds", keywords: "theme wallpaper background font color", run: () => setDesignOpen(true) },
+      { id: "app-theme", label: dark ? "Switch app to light mode" : "Switch app to dark mode", group: "Appearance", icon: dark ? Sun : Moon, keywords: "dark light theme mode", run: toggle },
+      { id: "tt-dark", label: "Timetable: dark", group: "Appearance", icon: Moon, keywords: "timetable dark mode", run: () => setTheme({ mode: "dark" }) },
+      { id: "tt-light", label: "Timetable: light", group: "Appearance", icon: Sun, keywords: "timetable light mode", run: () => setTheme({ mode: "light" }) },
+      { id: "tt-auto", label: "Timetable: match app", group: "Appearance", icon: SunMoon, keywords: "timetable auto mode", run: () => setTheme({ mode: "app" }) },
+      { id: "tt-cols", label: "Timetable layout: days as columns", group: "Appearance", icon: Columns3, keywords: "grid orientation", run: () => setTheme({ layout: "grid", orientation: "days-columns" }) },
+      { id: "tt-rows", label: "Timetable layout: days as rows", group: "Appearance", icon: Rows3, keywords: "grid orientation", run: () => setTheme({ layout: "grid", orientation: "days-rows" }) },
+      { id: "tt-agenda", label: "Timetable layout: agenda list", group: "Appearance", icon: List, keywords: "list cards", run: () => setTheme({ layout: "agenda" }) },
+      { id: "plan-new", label: "New plan", group: "Plans", icon: Plus, keywords: "create timetable plan", run: () => void createPlan() },
+      ...plans
+        .filter((p) => p.id !== plan.id)
+        .map<Command>((p) => ({ id: `plan-${p.id}`, label: `Switch to ${p.name}`, group: "Plans", icon: LayoutGrid, keywords: "plan", run: () => setActivePlan(p.id) })),
+      { id: "about", label: "About & disclaimer", group: "Help", icon: Info, run: () => setAboutOpen(true) },
+      { id: "report", label: "Report an issue", group: "Help", icon: Bug, run: () => setReportOpen(true) },
+      { id: "support", label: "Buy me a coffee", group: "Help", icon: Coffee, run: () => setSupportOpen(true) },
+    ];
+  }, [nav, openTab, dark, toggle, setTheme, createPlan, plans, plan.id, setActivePlan]);
 
   const panel = (
     <>
@@ -272,21 +403,22 @@ export default function App() {
 
   // Compact 5-column segmented bar — all tabs visible, no horizontal scroll.
   const tabBar = (
-    <div className="grid grid-cols-5 gap-1 border-b border-line px-2 py-2">
+    <div className="grid grid-cols-5 gap-1 border-b border-line p-2">
       {TABS.map((t) => (
         <button
           key={t.id}
           type="button"
           onClick={() => setTab(t.id)}
           title={t.label}
-          className={`flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[10px] font-semibold transition-colors ${
-            tab === t.id ? "bg-accent/15 text-accent" : "text-soft hover:bg-raised"
+          aria-pressed={tab === t.id}
+          className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold transition-colors ${
+            tab === t.id ? "bg-accent/15 text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_30%,transparent)]" : "text-soft hover:bg-raised hover:text-ink"
           }`}
         >
           <span className="relative">
             <t.icon className="size-4" />
             {t.id === "planner" && basketCount > 0 && (
-              <span className="absolute -top-1 -right-2 rounded-full bg-accent px-1 text-[9px] text-on-accent">{basketCount}</span>
+              <span className="absolute -top-1.5 -right-2.5 rounded-full bg-accent px-1 text-[9px] font-bold text-on-accent">{basketCount}</span>
             )}
           </span>
           {t.short}
@@ -297,125 +429,66 @@ export default function App() {
 
   const timetableLayout = narrow && !mobileGrid ? "agenda" : theme.layout;
   const ActiveView = VIEWS.find((v) => v.id === view)?.component;
+  const bottomItems = VIEWS.filter((v) => BOTTOM_IDS.includes(v.id));
+  const layoutMode = theme.layout === "agenda" ? "agenda" : theme.orientation === "days-rows" ? "rows" : "cols";
+
+  const moreItems = [
+    { icon: Info, label: "About & disclaimer", onClick: () => setAboutOpen(true), tone: "" },
+    { icon: Bug, label: "Report an issue", onClick: () => setReportOpen(true), tone: "text-warn" },
+    { icon: Coffee, label: "Buy me a coffee", onClick: () => setSupportOpen(true), tone: "text-accent" },
+  ];
+
+  const seg = (on: boolean) =>
+    `flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${on ? "bg-accent/15 text-accent" : "text-soft hover:text-ink"}`;
 
   return (
-    <div className="flex h-full flex-col bg-bg text-ink">
-      {/* Header */}
-      <header className="flex items-center gap-1.5 border-b border-line bg-panel px-2 py-2 sm:gap-2 sm:px-4 print:hidden">
+    <div className="flex h-full flex-col text-ink">
+      {/* ------------------------------------------------------------ Header */}
+      <header className="surface relative z-30 flex items-center gap-2 rounded-none border-x-0 border-t-0 px-3 py-2.5 sm:gap-3 sm:px-5 print:hidden">
         <button
           type="button"
           onClick={() => nav("home")}
-          className="flex items-center gap-1.5 text-left hover:opacity-85 transition-opacity cursor-pointer"
+          aria-label="JadualUiTMKu home"
+          className="group flex shrink-0 items-center gap-2.5 text-left"
         >
-          <CalendarDays className="size-5 shrink-0 text-accent" />
-          <h1 className="hidden text-base font-extrabold tracking-tight sm:block">JadualUiTMKu</h1>
+          <LogoMark className="size-8 shrink-0 transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-105" />
+          <Wordmark className="hidden text-[17px] xl:block" />
         </button>
+
         {session && (
-          <span className="hidden rounded-full bg-raised px-2 py-0.5 text-[11px] font-semibold text-soft md:inline">
+          <span className="hidden items-center gap-2 rounded-full border border-line bg-panel/60 px-3 py-1 text-[11px] font-semibold whitespace-nowrap text-soft min-[1680px]:inline-flex">
+            <span className="live-dot" />
             Session {session}
-            {weekNo ? ` · Week ${weekNo}` : ""}
+            {weekNo ? <span className="text-faint">· Week {weekNo}</span> : null}
           </span>
         )}
-        {/* view switcher — icon bar on sm+, a single dropdown on phones so the header fits 360px */}
-        <nav className="ml-1 hidden rounded-lg border border-line p-0.5 text-xs font-semibold sm:flex">
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={() => nav(v.id)}
-              className={`flex items-center gap-1 rounded-md px-2 py-1 sm:px-2.5 ${view === v.id ? "bg-accent/15 text-accent" : "text-soft hover:bg-raised"}`}
-            >
-              <v.icon className="size-3.5" />
-              <span className="hidden sm:inline">{v.label}</span>
-            </button>
-          ))}
-        </nav>
-        <div ref={viewMenuRef} className="relative ml-1 sm:hidden">
+
+        <div className="mx-auto">
+          <SlidingNav items={VIEWS} current={view} onNav={nav} />
+        </div>
+        <span className="mr-auto sm:hidden" />
+
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
-            onClick={() => setViewMenuOpen((o) => !o)}
-            aria-label="Switch view"
-            aria-haspopup="menu"
-            aria-expanded={viewMenuOpen}
-            className="flex items-center gap-1 rounded-lg border border-line px-2 py-1.5 text-soft"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Search and commands"
+            className="flex items-center gap-2 rounded-xl border border-line bg-panel/70 p-2 text-soft backdrop-blur transition-colors hover:border-faint/60 hover:text-ink lg:px-3 lg:py-2"
           >
-            {(() => {
-              const Icon = VIEWS.find((v) => v.id === view)?.icon ?? LayoutGrid;
-              return <Icon className="size-4" />;
-            })()}
-            <ChevronDown className="size-3 text-faint" />
+            <Search className="size-4" />
+            <span className="hidden text-xs font-medium text-faint min-[1680px]:inline">Search</span>
+            <span className="kbd hidden lg:inline">{isMac ? "⌘" : "Ctrl"} K</span>
           </button>
-          {viewMenuOpen && (
-            <div role="menu" className="absolute top-full left-0 z-40 mt-1 w-40 overflow-hidden rounded-lg border border-line bg-panel py-1 shadow-xl">
-              {VIEWS.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    nav(v.id);
-                    setViewMenuOpen(false);
-                  }}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold ${
-                    view === v.id ? "bg-accent/10 text-accent" : "text-soft hover:bg-raised"
-                  }`}
-                >
-                  <v.icon className="size-3.5" /> {v.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setSupportOpen(true);
-                  setViewMenuOpen(false);
-                }}
-                className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-xs font-semibold text-soft hover:bg-raised"
-              >
-                <Coffee className="size-3.5 text-accent" /> Buy Me a Coffee
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setReportOpen(true);
-                  setViewMenuOpen(false);
-                }}
-                className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-xs font-semibold text-soft hover:bg-raised"
-              >
-                <Bug className="size-3.5 text-warn" /> Report an issue
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setAboutOpen(true);
-                  setViewMenuOpen(false);
-                }}
-                className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-xs font-semibold text-soft hover:bg-raised"
-              >
-                <Info className="size-3.5" /> About &amp; disclaimer
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <PlansMenu />
-          <span className="hidden sm:inline-flex">
+          <span className="hidden lg:inline-flex">
             <SupportButton onClick={() => setSupportOpen(true)} />
-          </span>
-          <span className="hidden sm:inline-flex">
-            <ReportButton onClick={() => setReportOpen(true)} />
-          </span>
-          <span className="hidden sm:inline-flex">
-            <AboutButton onClick={() => setAboutOpen(true)} />
           </span>
           <button
             type="button"
             onClick={() => setDesignOpen(true)}
             aria-label="Customize"
             title="Customize"
-            className="rounded-lg border border-line bg-panel p-2 text-soft hover:bg-raised"
+            className="rounded-xl border border-line bg-panel/70 p-2 text-soft backdrop-blur hover:bg-raised hover:text-ink"
           >
             <Palette className="size-4" />
           </button>
@@ -423,156 +496,199 @@ export default function App() {
             type="button"
             onClick={toggle}
             aria-label="Toggle theme"
-            className="rounded-lg border border-line bg-panel p-2 text-soft hover:bg-raised"
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            className="rounded-xl border border-line bg-panel/70 p-2 text-soft backdrop-blur hover:bg-raised hover:text-ink"
           >
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
+          <MoreMenu items={moreItems} />
         </div>
       </header>
       <DisclaimerBanner onAbout={() => setAboutOpen(true)} />
 
-      {ActiveView ? (
-        <Suspense
-          fallback={
-            <div className="mx-auto w-full max-w-4xl flex-1 space-y-3 p-4" aria-busy="true" aria-label="Loading">
-              <div className="skeleton h-8 w-48" />
-              <div className="skeleton h-24 w-full" />
-              <div className="skeleton h-24 w-full" />
-              <div className="skeleton h-24 w-3/4" />
-            </div>
-          }
-        >
-          <ActiveView />
-        </Suspense>
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          {/* Desktop side panel */}
-          <aside className="hidden w-105 shrink-0 flex-col border-r border-line bg-panel lg:flex print:hidden">
-            {tabBar}
-            <div className="min-h-0 flex-1 overflow-y-auto">{panel}</div>
-          </aside>
-
-          {/* Main timetable area */}
-          <main className="flex min-w-0 flex-1 flex-col">
-            <ClashBanner entries={plan.entries} />
-            {/* narrow-screen layout toggle */}
-            {plan.entries.length > 0 && (
-              <div className="flex items-center justify-end px-3 pt-2 print:hidden lg:hidden">
-                <button
-                  type="button"
-                  onClick={() => setMobileGrid((g) => !g)}
-                  className="flex items-center gap-1.5 rounded-lg border border-line bg-panel px-2.5 py-1 text-xs font-semibold text-soft"
-                >
-                  {timetableLayout === "agenda" ? (
-                    <>
-                      <LayoutGrid className="size-3.5" /> Grid
-                    </>
-                  ) : (
-                    <>
-                      <List className="size-3.5" /> Agenda
-                    </>
-                  )}
-                </button>
+      {/* ------------------------------------------------------------ Content */}
+      <div className="flex min-h-0 flex-1 flex-col max-sm:pb-[4.75rem]">
+        {ActiveView ? (
+          <Suspense
+            fallback={
+              <div className="mx-auto w-full max-w-4xl flex-1 space-y-3 p-6" aria-busy="true" aria-label="Loading">
+                <div className="skeleton h-9 w-56" />
+                <div className="skeleton h-28 w-full" />
+                <div className="skeleton h-28 w-full" />
+                <div className="skeleton h-28 w-3/4" />
               </div>
-            )}
-            <div className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
-              {plan.entries.length === 0 && !ghost ? (
-                <div className="relative flex min-h-full flex-col items-center justify-center gap-2 overflow-hidden p-8 pb-24 text-center">
-                  {hasBackdrop(theme) && <BackgroundLayer theme={theme} />}
-                  <div className="relative z-10 flex max-w-sm flex-col items-center gap-3 rounded-2xl border border-line bg-panel/85 p-6 shadow-sm backdrop-blur-md">
-                    <CalendarDays className="size-10 text-accent" />
-                    <p className="text-sm text-soft">
-                      Your timetable is empty. Add classes on the left — browse a campus, look up a group code, import your
-                      matric timetable, or drop in a custom block.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setSheetOpen(true)}
-                      className="mt-1 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent lg:hidden"
-                    >
-                      Add classes
+            }
+          >
+            <ActiveView />
+          </Suspense>
+        ) : (
+          <div className="flex min-h-0 flex-1">
+            {/* Desktop side panel */}
+            <aside className="surface hidden w-[27rem] shrink-0 flex-col rounded-none border-y-0 border-l-0 lg:flex print:hidden">
+              {tabBar}
+              <div className="min-h-0 flex-1 overflow-y-auto">{panel}</div>
+            </aside>
+
+            {/* Main timetable area */}
+            <main className="flex min-w-0 flex-1 flex-col">
+              <ClashBanner entries={plan.entries} />
+              {plan.entries.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-4 print:hidden">
+                  <StatChips entries={plan.entries} />
+                  <div className="flex items-center gap-2">
+                    <ModeToggle compact />
+                    {/* desktop: columns / rows / agenda */}
+                    <div role="radiogroup" aria-label="Timetable layout" className="surface hidden rounded-xl p-0.5 lg:flex">
+                      {(
+                        [
+                          ["cols", "Columns", Columns3, () => setTheme({ layout: "grid", orientation: "days-columns" })],
+                          ["rows", "Rows", Rows3, () => setTheme({ layout: "grid", orientation: "days-rows" })],
+                          ["agenda", "Agenda", List, () => setTheme({ layout: "agenda" })],
+                        ] as const
+                      ).map(([id, label, Icon, run]) => (
+                        <button key={id} type="button" role="radio" aria-checked={layoutMode === id} onClick={run} title={label} className={seg(layoutMode === id)}>
+                          <Icon className="size-3.5" />
+                          <span className="hidden xl:inline">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {/* phones / tablets: agenda <-> grid */}
+                    <button type="button" onClick={() => setMobileGrid((g) => !g)} className={`surface flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-soft lg:hidden`}>
+                      {timetableLayout === "agenda" ? (
+                        <>
+                          <LayoutGrid className="size-3.5" /> Grid
+                        </>
+                      ) : (
+                        <>
+                          <List className="size-3.5" /> Agenda
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className={timetableLayout === "agenda" ? "mx-auto flex min-h-full max-w-2xl flex-col flex-1" : "h-full"}>
-                  <TimetableView
-                    entries={plan.entries}
-                    theme={theme}
-                    ghost={ghost}
-                    highlightIds={highlightIds}
-                    onBlockClick={setEditing}
-                    layout={timetableLayout}
-                    fill={timetableLayout !== "agenda"}
-                    className={timetableLayout === "agenda" ? "min-h-full flex-1 flex flex-col pb-20 lg:pb-2" : "h-full pb-20 lg:pb-0"}
-                  />
-                </div>
               )}
-            </div>
-            <SummaryStrip entries={plan.entries} />
-          </main>
-        </div>
-      )}
+              <div className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
+                {plan.entries.length === 0 && !ghost ? (
+                  <StartPanel onPick={openTab} />
+                ) : (
+                  <div className={timetableLayout === "agenda" ? "mx-auto flex min-h-full max-w-2xl flex-1 flex-col pb-20 lg:pb-2" : "h-full px-2 pb-20 sm:px-3 lg:pb-3"}>
+                    <TimetableView
+                      entries={plan.entries}
+                      theme={theme}
+                      ghost={ghost}
+                      highlightIds={highlightIds}
+                      onBlockClick={setEditing}
+                      layout={timetableLayout}
+                      fill={timetableLayout !== "agenda"}
+                      className={timetableLayout === "agenda" ? "flex min-h-full flex-1 flex-col" : "h-full overflow-hidden rounded-2xl border border-line"}
+                    />
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+        )}
+      </div>
 
-      {/* Mobile bottom sheet */}
+      {/* ------------------------------------- Phone / tablet: add-classes sheet */}
       {view === "timetable" && (
         <div className="lg:hidden print:hidden">
-          <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-line bg-panel">
-            {sheetOpen && (
-              <div className="flex h-[68dvh] flex-col">
-                <div className="flex items-center justify-between px-3 pt-2">
-                  <span className="text-sm font-bold">{TABS.find((t) => t.id === tab)?.label}</span>
-                  <button type="button" onClick={() => setSheetOpen(false)} className="rounded-md p-1.5 text-faint hover:bg-raised">
+          {!sheetOpen && plan.entries.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="btn-accent anim-fade fixed right-4 bottom-[5.5rem] z-30 flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold shadow-xl sm:bottom-6"
+            >
+              <Plus className="size-4" /> Add classes
+            </button>
+          )}
+          {sheetOpen && (
+            <>
+              <div className="anim-fade fixed inset-0 z-[39] bg-black/45 backdrop-blur-[2px]" onClick={() => setSheetOpen(false)} aria-hidden />
+              <div className="anim-slide-up surface fixed inset-x-0 bottom-0 z-40 flex h-[78dvh] flex-col rounded-t-3xl pb-[env(safe-area-inset-bottom)]" role="dialog" aria-label="Add classes">
+                <div className="flex items-center justify-between px-4 pt-2.5">
+                  <span className="mx-auto h-1 w-10 rounded-full bg-line" aria-hidden />
+                </div>
+                <div className="flex items-center justify-between px-4 pt-1 pb-1">
+                  <span className="text-base font-bold tracking-tight">{TABS.find((t) => t.id === tab)?.label}</span>
+                  <button type="button" onClick={() => setSheetOpen(false)} aria-label="Close" className="rounded-lg p-1.5 text-faint hover:bg-raised">
                     <X className="size-5" />
                   </button>
                 </div>
                 {tabBar}
                 <div className="min-h-0 flex-1 overflow-y-auto">{panel}</div>
               </div>
-            )}
-            {!sheetOpen && (
-              <div className="grid grid-cols-5">
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setTab(t.id);
-                      setSheetOpen(true);
-                    }}
-                    className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-soft"
-                  >
-                    <t.icon className="size-5" />
-                    {t.short}
-                  </button>
-                ))}
-              </div>
-            )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ------------------------------------------------ Phone: bottom nav + More */}
+      <BottomNav items={bottomItems} current={view} onNav={nav} onMore={() => setMoreOpen(true)} moreActive={!BOTTOM_IDS.includes(view)} />
+      {moreOpen && (
+        <div className="sm:hidden print:hidden">
+          <div className="anim-fade fixed inset-0 z-[45] bg-black/50 backdrop-blur-[2px]" onClick={() => setMoreOpen(false)} aria-hidden />
+          <div className="anim-slide-up surface fixed inset-x-0 bottom-0 z-[46] rounded-t-3xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))]" role="dialog" aria-label="More">
+            <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line" aria-hidden />
+            <div className="grid grid-cols-4 gap-2">
+              {VIEWS.filter((v) => !BOTTOM_IDS.includes(v.id)).map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => {
+                    nav(v.id);
+                    setMoreOpen(false);
+                  }}
+                  className={`flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-xs font-semibold ${view === v.id ? "border-accent/50 bg-accent/10 text-accent" : "border-line bg-panel text-soft"}`}
+                >
+                  <v.icon className="size-5" /> {v.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false);
+                  setDesignOpen(true);
+                }}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border border-line bg-panel p-3 text-xs font-semibold text-soft"
+              >
+                <Palette className="size-5" /> Customize
+              </button>
+            </div>
+            <div className="mt-3 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-panel">
+              <button type="button" onClick={toggle} className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-soft">
+                {dark ? <Sun className="size-4" /> : <Moon className="size-4" />} {dark ? "Light mode" : "Dark mode"}
+              </button>
+              {moreItems.map((it) => (
+                <button
+                  key={it.label}
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    it.onClick();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-soft"
+                >
+                  <it.icon className={`size-4 ${it.tone}`} /> {it.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      <AppFooter
-        onAbout={() => setAboutOpen(true)}
-        onReport={() => setReportOpen(true)}
-        onSupport={() => setSupportOpen(true)}
-      />
+      <AppFooter onAbout={() => setAboutOpen(true)} onReport={() => setReportOpen(true)} onSupport={() => setSupportOpen(true)} />
       <RecolorToast />
 
+      {paletteOpen && <CommandPalette commands={commands} onClose={() => setPaletteOpen(false)} />}
       {editing && <EntryEditDialog entry={editing} onClose={() => setEditing(null)} />}
       {aboutOpen && (
-        <AboutDialog
-          onClose={() => setAboutOpen(false)}
-          onReport={() => setReportOpen(true)}
-          onSupport={() => setSupportOpen(true)}
-        />
+        <AboutDialog onClose={() => setAboutOpen(false)} onReport={() => setReportOpen(true)} onSupport={() => setSupportOpen(true)} />
       )}
       {reportOpen && <ReportDialog onClose={() => setReportOpen(false)} />}
       {supportOpen && <SupportDialog onClose={() => setSupportOpen(false)} />}
       {designOpen && <DesignDrawer onClose={() => setDesignOpen(false)} />}
-      {incomingShare && (
-        <ShareDialog payload={incomingShare} onClose={() => setIncomingShare(null)} onCompare={() => nav("compare")} />
-      )}
+      {incomingShare && <ShareDialog payload={incomingShare} onClose={() => setIncomingShare(null)} onCompare={() => nav("compare")} />}
     </div>
   );
 }

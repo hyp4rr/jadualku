@@ -2,36 +2,50 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ---------------------------------------------------------------------------
+   Design tokens. One accent (UiTM gold), warm neutrals, tinted shadows.
+   Light = warm paper; dark = warm charcoal (never pure black).
+--------------------------------------------------------------------------- */
 :root {
-  --bg: #eef0f4;
+  --bg: #f5f3ee;
   --panel: #ffffff;
-  --raised: #f4f5f8;
-  --line: #dde0e8;
-  --ink: #161a24;
-  --soft: #4d5566;
-  --faint: #8a92a3;
-  --accent: #2563eb;
-  --accent-deep: #1d4ed8;
+  --raised: #efece5;
+  --line: #e2ded3;
+  --ink: #17150f;
+  --soft: #55524a;
+  --faint: #86827a;
+  --accent: #b45309;
+  --accent-deep: #92400e;
+  --accent-soft: #fde7c0;
   --on-accent: #ffffff;
   --good: #15803d;
   --bad: #dc2626;
-  --warn: #b45309;
+  --warn: #c2410c;
+  --shadow-tint: 60 40 10;
+  --glow-a: rgb(245 158 11 / 0.16);
+  --glow-b: rgb(120 113 108 / 0.1);
+  --grain: 0.025;
 }
 
 .dark {
-  --bg: #0b0e14;
-  --panel: #12161f;
-  --raised: #1a2029;
-  --line: #262d3a;
-  --ink: #eceff5;
-  --soft: #a6aebe;
-  --faint: #6b7484;
-  --accent: #5b9dff;
-  --accent-deep: #3b82f6;
-  --on-accent: #0a1220;
+  --bg: #0b0b0e;
+  --panel: #131317;
+  --raised: #1b1b21;
+  --line: #2a2a31;
+  --ink: #f4f3ef;
+  --soft: #a8a59c;
+  --faint: #76736b;
+  --accent: #f0b429;
+  --accent-deep: #d99a0b;
+  --accent-soft: #3a2c0a;
+  --on-accent: #1a1203;
   --good: #4ade80;
   --bad: #f87171;
-  --warn: #fbbf24;
+  --warn: #fb923c;
+  --shadow-tint: 0 0 0;
+  --glow-a: rgb(240 180 41 / 0.1);
+  --glow-b: rgb(120 140 255 / 0.05);
+  --grain: 0.04;
 }
 
 @theme inline {
@@ -44,6 +58,7 @@
   --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-deep: var(--accent-deep);
+  --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
   --color-good: var(--good);
   --color-bad: var(--bad);
@@ -53,17 +68,37 @@
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
 }
 
-html,
+html {
+  height: 100%;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 520px at 12% -8%, var(--glow-a), transparent 70%),
+    radial-gradient(800px 480px at 100% 0%, var(--glow-b), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
 body,
 #root {
   height: 100%;
-  background: var(--bg);
   color: var(--ink);
 }
 
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Soft film grain, fixed + non-interactive so it never repaints with scrolling content. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 ::selection {
@@ -73,11 +108,96 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
+  scrollbar-color: color-mix(in oklab, var(--faint) 40%, transparent) transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Surfaces, buttons, chips
+--------------------------------------------------------------------------- */
+.surface {
+  background: color-mix(in oklab, var(--panel) 86%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  backdrop-filter: blur(16px) saturate(1.35);
+  border: 1px solid color-mix(in oklab, var(--line) 90%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 18px 40px -22px rgb(var(--shadow-tint) / 0.45);
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 14px 34px -24px rgb(var(--shadow-tint) / 0.5);
+}
+
+.card-hover {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease,
+    box-shadow 0.35s ease,
+    background-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--line));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 22px 44px -22px rgb(var(--shadow-tint) / 0.6);
+}
+
+.btn-accent {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 86%, white) 0%, var(--accent) 100%);
+  color: var(--on-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.35),
+    0 10px 24px -12px color-mix(in oklab, var(--accent) 70%, transparent);
+}
+.btn-accent:hover {
+  filter: brightness(1.06) saturate(1.05);
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--faint);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.text-gold {
+  background: linear-gradient(120deg, color-mix(in oklab, var(--accent) 70%, white), var(--accent) 45%, var(--accent-deep));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hairline-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--line) 70%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 20%, transparent 72%);
 }
 
 /* Diagonal stripes used on clashing timetable blocks. */
@@ -109,13 +229,18 @@ body {
     height: auto;
     background: #fff;
   }
+  body::after {
+    display: none;
+  }
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 }
 
-/* ---- Motion: entrances, tactile presses, skeletons (all disabled under reduced motion) ---- */
+/* ---------------------------------------------------------------------------
+   Motion: entrances, tactile presses, skeletons (all disabled under reduced motion)
+--------------------------------------------------------------------------- */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -128,15 +253,47 @@ body {
   from { opacity: 0; transform: translateX(28px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes shimmer {
   to { background-position-x: -200%; }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--good) 55%, transparent); }
+  80%, 100% { box-shadow: 0 0 0 8px transparent; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
 }
 
 .anim-fade { animation: fade-in 0.18s ease-out; }
 .anim-sheet { animation: sheet-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 .anim-panel { animation: sheet-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.anim-slide-up { animation: slide-up 0.34s cubic-bezier(0.16, 1, 0.3, 1); }
 @media (min-width: 1024px) {
   .anim-panel { animation-name: drawer-in; }
+}
+
+/* Staggered entrance: set style="--i: n" on each child. */
+.reveal {
+  animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+.float-y { animation: float-y 6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -1.6s); }
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--good);
+  animation: pulse-ring 2s ease-out infinite;
 }
 
 .skeleton {
@@ -159,8 +316,12 @@ button:not(:disabled):not([data-timetable-grid] *):active {
   transform: scale(0.975);
 }
 
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  .anim-fade, .anim-sheet, .anim-panel, .skeleton { animation: none; }
-  button { transition: none; }
+  .anim-fade, .anim-sheet, .anim-panel, .anim-slide-up, .skeleton, .reveal, .float-y, .live-dot { animation: none; }
+  button, .card-hover { transition: none; }
   button:not(:disabled):active { transform: none; }
+  .card-hover:hover { transform: none; }
 }

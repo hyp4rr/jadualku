@@ -25,7 +25,7 @@ export function ErrorBox({ message, onRetry }: { message: string; onRetry?: () =
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-lg border border-dashed border-line px-4 py-6 text-center text-sm text-faint">{children}</div>;
+  return <div className="rounded-2xl border border-dashed border-line bg-raised/30 px-4 py-8 text-center text-sm text-faint">{children}</div>;
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -38,16 +38,16 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 }
 
 export const inputCls =
-  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none";
+  "w-full rounded-xl border border-line bg-raised/60 px-3 py-2.5 text-sm text-ink placeholder:text-faint transition-[border-color,box-shadow,background-color] hover:border-faint/60 focus:border-accent focus:bg-panel focus:ring-4 focus:ring-accent/15 focus:outline-none";
 
 /** Compact input without w-full — for fixed-width cells inside dense rows/grids. */
 export const inputSm =
-  "rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-ink placeholder:text-faint focus:border-accent focus:outline-none";
+  "rounded-lg border border-line bg-raised/60 px-2 py-1.5 text-sm text-ink placeholder:text-faint transition-[border-color,box-shadow] hover:border-faint/60 focus:border-accent focus:bg-panel focus:ring-4 focus:ring-accent/15 focus:outline-none";
 
 export const btnCls =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors";
-export const btnPrimary = `${btnCls} bg-accent text-on-accent hover:bg-accent-deep`;
-export const btnGhost = `${btnCls} border border-line bg-panel text-ink hover:bg-raised`;
+  "inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors";
+export const btnPrimary = `${btnCls} btn-accent`;
+export const btnGhost = `${btnCls} border border-line bg-panel text-ink hover:border-faint/50 hover:bg-raised`;
 export const btnDanger = `${btnCls} border border-bad/50 text-bad hover:bg-bad/10`;
 
 /** Searchable dropdown for campus / faculty lists. */
@@ -97,7 +97,7 @@ export function SearchableSelect({
         <ChevronDown className="size-4 shrink-0 text-faint" />
       </button>
       {open && (
-        <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-line bg-panel shadow-xl">
+        <div className="anim-sheet absolute z-30 mt-1.5 w-full overflow-hidden rounded-xl border border-line bg-panel shadow-2xl">
           <div className="flex items-center gap-2 border-b border-line px-3 py-2">
             <Search className="size-4 text-faint" />
             <input
@@ -118,7 +118,7 @@ export function SearchableSelect({
                   setOpen(false);
                   setQ("");
                 }}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-raised"
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent/10"
               >
                 <span>
                   <span className="font-mono font-semibold">{o.id}</span>{" "}
@@ -153,20 +153,20 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="anim-fade fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 backdrop-blur-[3px] sm:items-center sm:p-4" onMouseDown={onClose}>
       <div
-        className={`max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-panel shadow-2xl sm:rounded-2xl ${
+        className={`anim-sheet max-h-[90vh] w-full overflow-y-auto rounded-t-3xl border border-line bg-panel shadow-2xl sm:rounded-3xl ${
           wide ? "sm:max-w-2xl" : "sm:max-w-md"
         }`}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 flex items-center justify-between border-b border-line bg-panel px-4 py-3">
-          <h2 className="font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-faint hover:bg-raised hover:text-ink">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-panel/90 px-5 py-3.5 backdrop-blur">
+          <h2 className="text-[15px] font-bold tracking-tight">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-faint hover:bg-raised hover:text-ink">
             <X className="size-5" />
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>
   );

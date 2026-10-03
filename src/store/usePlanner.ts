@@ -164,7 +164,7 @@ export const usePlanner = create<PlannerState>()(
       lastCampus: "",
       lastFaculty: "",
       recents: [],
-      theme: { ...DEFAULT_THEME, palette: [...DEFAULT_THEME.palette], show: { ...DEFAULT_THEME.show } },
+      theme: { ...DEFAULT_THEME, mode: "app", palette: [...DEFAULT_THEME.palette], show: { ...DEFAULT_THEME.show } },
       savedThemes: [],
       sharedPlans: [],
       calendar: { ...DEFAULT_CALENDAR },
